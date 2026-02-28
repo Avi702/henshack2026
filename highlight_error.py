@@ -1,23 +1,14 @@
-# visualize_error_overlay.py
-# Overlay a per-joint (or per-bone) error array onto an MP4 as a colored skeleton heatmap.
+# highlight_error.py
+# Overlay a (T,3) angle-error array (or (T,17)/(T,17,2)/(T,B)) onto an MP4 as a colored skeleton heatmap.
 #
-# Supports:
-#   A) You already saved keypoints per frame:
-#        kpts_xy.npy  shape (T,17,2)  float32  (pixel coords)
-#        kpts_cf.npy  shape (T,17)    float32  (confidence)
-#      and you have:
-#        err.npy      shape (T,17) OR (T,17,2) OR (T,B)  (see below)
+# NEW: Supports err shape (T,3) by mapping:
+#   col0: shoulder-hip-knee  -> HIP joint error
+#   col1: otherHip-hip-knee  -> HIP joint error (combined with col0)
+#   col2: hip-knee-ankle     -> KNEE joint error
+# Uses optional side.npy (T,) with -1=RIGHT, +1=LEFT, 0=unknown to choose which hip/knee to color.
 #
-#   B) You only have err.npy and want to re-run YOLO pose to get keypoints for drawing:
-#        --use-yolo (needs ultralytics + yolov8n-pose.pt)
-#
-# Error array formats:
-#   - (T,17): per-joint scalar error
-#   - (T,17,2): per-joint vector error; magnitude is used
-#   - (T,B): per-bone error, where B matches the number of skeleton edges defined below (len(EDGES))
-#
-# Output:
-#   Writes an MP4 with colored joints/bones (hotter color = higher error)
+# Example run:
+#   py highlight_error.py --mp4 WIN_20260228_14_32_19_Pro.mp4 --err 0_error.npy --side side.npy --use-yolo --flip-selfie --out overlay_test.mp4
 
 import argparse
 import os
@@ -31,27 +22,33 @@ import numpy as np
 # 13:l_knee,14:r_knee,15:l_ankle,16:r_ankle
 
 EDGES = [
-    (5, 7),  (7, 9),   # left arm
-    (6, 8),  (8, 10),  # right arm
-    (11, 13), (13, 15),# left leg
-    (12, 14), (14, 16),# right leg
-    (5, 6),            # shoulders
-    (11, 12),          # hips
-    (5, 11),           # left torso
-    (6, 12),           # right torso
-    (0, 5), (0, 6),    # head to shoulders (approx)
+    (5, 7),  (7, 9),    # left arm
+    (6, 8),  (8, 10),   # right arm
+    (11, 13), (13, 15), # left leg
+    (12, 14), (14, 16), # right leg
+    (5, 6),             # shoulders
+    (11, 12),           # hips
+    (5, 11),            # left torso
+    (6, 12),            # right torso
+    (0, 5), (0, 6),     # head to shoulders (approx)
 ]
+
+# Joint indices (COCO/YOLOv8)
+L_HIP, R_HIP = 11, 12
+L_KNEE, R_KNEE = 13, 14
 
 # ---------------- Utility ----------------
 def safe_norm(v, axis=-1):
     n = np.linalg.norm(v, axis=axis)
-    n[np.isnan(n)] = np.nan
+    # keep NaNs as NaNs
+    if isinstance(n, np.ndarray):
+        n[np.isnan(n)] = np.nan
     return n
 
 def normalize_err(err_frame, clip_max):
     """
     Map err values (float) to 0..255 uint8 using clip_max.
-    NaNs map to 0 (and can be skipped in drawing).
+    NaNs map to 0 (and will be skipped in drawing using mask).
     """
     e = err_frame.astype(np.float32)
     out = np.zeros_like(e, dtype=np.uint8)
@@ -67,17 +64,16 @@ def color_from_value_u8(v_u8, colormap=cv2.COLORMAP_TURBO):
     v_u8: scalar 0..255
     returns BGR tuple
     """
-    # applyColorMap expects (H,W) or (H,W,1)
     arr = np.array([[v_u8]], dtype=np.uint8)
     c = cv2.applyColorMap(arr, colormap)[0, 0]  # BGR
     return int(c[0]), int(c[1]), int(c[2])
 
 def draw_skeleton_heat(
     frame,
-    kpts_xy,       # (17,2)
-    kpts_cf,       # (17,)
-    joint_u8=None, # (17,) uint8, optional
-    bone_u8=None,  # (B,)  uint8, optional
+    kpts_xy,        # (17,2)
+    kpts_cf,        # (17,)
+    joint_u8=None,  # (17,) uint8, optional
+    bone_u8=None,   # (B,)  uint8, optional
     conf_thres=0.5,
     joint_radius=5,
     line_thickness=4,
@@ -87,11 +83,9 @@ def draw_skeleton_heat(
 ):
     """
     Draw joints and edges colored by error intensity.
-    If both joint_u8 and bone_u8 are provided, bones use bone_u8 and joints use joint_u8.
-    If only joint_u8 is provided, bones use average(joint endpoints).
+    If bone_u8 provided, bones use it; else if joint_u8 provided, bones use avg endpoints.
+    Joints are drawn only if joint_u8 is provided.
     """
-    h, w = frame.shape[:2]
-
     # bones
     if draw_bones:
         for bi, (i, j) in enumerate(EDGES):
@@ -133,11 +127,56 @@ def draw_skeleton_heat(
 
     return frame
 
+def err3_to_err17(err3, side=None, unknown_mode="both"):
+    """
+    Convert (T,3) angle-error array to (T,17) per-joint error array.
+
+    Columns expected:
+      0: shoulder-hip-knee  -> hip
+      1: otherHip-hip-knee  -> hip
+      2: hip-knee-ankle     -> knee
+
+    side: (T,) int8 with -1 right, +1 left, 0 unknown
+    unknown_mode:
+      - "both": write to both left+right when side==0
+      - "none": leave unknown as NaN
+    """
+    T = err3.shape[0]
+    err17 = np.full((T, 17), np.nan, dtype=np.float32)
+
+    hip_err = np.nanmean(err3[:, 0:2], axis=1).astype(np.float32)
+    knee_err = err3[:, 2].astype(np.float32)
+
+    if side is None:
+        # No side info: paint BOTH hips/knees always
+        err17[:, L_HIP] = hip_err
+        err17[:, R_HIP] = hip_err
+        err17[:, L_KNEE] = knee_err
+        err17[:, R_KNEE] = knee_err
+        return err17
+
+    side = side.astype(np.int8)
+    for t in range(T):
+        if side[t] == +1:
+            err17[t, L_HIP] = hip_err[t]
+            err17[t, L_KNEE] = knee_err[t]
+        elif side[t] == -1:
+            err17[t, R_HIP] = hip_err[t]
+            err17[t, R_KNEE] = knee_err[t]
+        else:
+            if unknown_mode == "both":
+                err17[t, L_HIP] = hip_err[t]
+                err17[t, R_HIP] = hip_err[t]
+                err17[t, L_KNEE] = knee_err[t]
+                err17[t, R_KNEE] = knee_err[t]
+            # else: leave NaN
+    return err17
+
 # ---------------- Main ----------------
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mp4", required=True, help="Input MP4 path")
-    ap.add_argument("--err", required=True, help="Path to error .npy (T,17) or (T,17,2) or (T,B)")
+    ap.add_argument("--err", required=True, help="Path to error .npy (T,3) or (T,17) or (T,17,2) or (T,B)")
     ap.add_argument("--out", default="error_overlay.mp4", help="Output MP4 path")
 
     ap.add_argument("--kpts-xy", default=None, help="Optional: keypoints xy .npy (T,17,2)")
@@ -146,6 +185,14 @@ def main():
     ap.add_argument("--use-yolo", action="store_true",
                     help="If set, run YOLO pose to get keypoints instead of loading kpts .npy")
     ap.add_argument("--yolo-model", default="yolov8n-pose.pt", help="YOLO pose model path")
+
+    ap.add_argument("--side", default=None,
+                    help="Optional: side.npy (T,) with -1=RIGHT, +1=LEFT, 0=unknown. Used for (T,3) errors.")
+    ap.add_argument("--unknown-side", default="both", choices=["both", "none"],
+                    help="If side==0, either color both sides ('both') or leave blank ('none').")
+
+    ap.add_argument("--flip-selfie", action="store_true",
+                    help="Flip frames horizontally before YOLO/drawing (match extraction if FLIP_SELFIE=True).")
 
     ap.add_argument("--conf-thres", type=float, default=0.5, help="Keypoint conf threshold for drawing")
     ap.add_argument("--clip-max", type=float, default=None,
@@ -165,22 +212,36 @@ def main():
         args.draw_bones = True
 
     err = np.load(args.err)
-    if err.ndim == 3 and err.shape[1:] == (17, 2):
-        # vector error -> magnitude
+
+    # --- Accept (T,3) and map to (T,17) ---
+    if err.ndim == 2 and err.shape[1] == 3:
+        side = None
+        if args.side is not None:
+            side = np.load(args.side)
+            if side.shape[0] != err.shape[0]:
+                raise ValueError(f"side length {side.shape[0]} does not match err T {err.shape[0]}")
+        err_scalar = err3_to_err17(err.astype(np.float32), side=side, unknown_mode=args.unknown_side)
+        err_is_joint = True
+        err_is_bone = False
+
+    elif err.ndim == 3 and err.shape[1:] == (17, 2):
         err_scalar = safe_norm(err, axis=-1)  # (T,17)
         err_is_joint = True
         err_is_bone = False
+
     elif err.ndim == 2 and err.shape[1] == 17:
         err_scalar = err.astype(np.float32)   # (T,17)
         err_is_joint = True
         err_is_bone = False
+
     elif err.ndim == 2 and err.shape[1] == len(EDGES):
         err_scalar = err.astype(np.float32)   # (T,B)
         err_is_joint = False
         err_is_bone = True
+
     else:
         raise ValueError(
-            f"Unsupported err shape {err.shape}. Expected (T,17), (T,17,2), or (T,{len(EDGES)})."
+            f"Unsupported err shape {err.shape}. Expected (T,3), (T,17), (T,17,2), or (T,{len(EDGES)})."
         )
 
     # Open video
@@ -240,12 +301,15 @@ def main():
         if not ret:
             break
 
+        if args.flip_selfie:
+            frame = cv2.flip(frame, 1)
+
         # Get keypoints for this frame
         if args.use_yolo:
             r = yolo_model(frame, verbose=False)[0]
             if r.keypoints is None:
-                # no pose detected: still write original frame with a label
-                cv2.putText(frame, "NO POSE", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2, cv2.LINE_AA)
+                cv2.putText(frame, "NO POSE", (20, 40),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2, cv2.LINE_AA)
                 writer.write(frame)
                 frame_idx += 1
                 continue
@@ -268,11 +332,10 @@ def main():
 
         # Get errors for this frame and map to 0..255
         if err_is_joint:
-            joint_u8, joint_mask = normalize_err(err_scalar[frame_idx], clip_max)
+            joint_u8, _ = normalize_err(err_scalar[frame_idx], clip_max)
             bone_u8 = None
         else:
-            # bone errors
-            bone_u8, bone_mask = normalize_err(err_scalar[frame_idx], clip_max)
+            bone_u8, _ = normalize_err(err_scalar[frame_idx], clip_max)
             joint_u8 = None
 
         # Draw
