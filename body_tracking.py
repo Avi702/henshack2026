@@ -14,10 +14,10 @@ if not stream.isOpened():
 
 # COCO 17 keypoints names (YOLOv8 pose uses this order)
 COCO_KPTS = [
-    "nose","left_eye","right_eye","left_ear","right_ear",
-    "left_shoulder","right_shoulder","left_elbow","right_elbow",
-    "left_wrist","right_wrist","left_hip","right_hip",
-    "left_knee","right_knee","left_ankle","right_ankle"
+    "nose","right_eye","left_eye","right_ear","left_ear",
+    "right_shoulder","left_shoulder","right_elbow","left_elbow",
+    "right_wrist","left_wrist","right_hip","left_hip",
+    "right_knee","left_knee","right_ankle","left_ankle"
 ]
 
 # COCO skeleton connections (pairs of keypoint indices)
