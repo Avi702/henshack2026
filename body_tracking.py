@@ -2,7 +2,6 @@ import cv2
 from ultralytics import YOLO
 import math
 
-# Load a YOLO pose model (not the regular detection model)
 model = YOLO("yolov8n-pose.pt")
 
 stream = cv2.VideoCapture(0)
