@@ -1,1 +1,22 @@
 squat_forms/
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+
+# OS
+.DS_Store
+
+# FastAPI artifacts
+backend/app/artifacts/inputs/
+backend/app/artifacts/outputs/
+
