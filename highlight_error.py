@@ -1,14 +1,26 @@
 # highlight_error.py
 # Overlay a (T,3) angle-error array (or (T,17)/(T,17,2)/(T,B)) onto an MP4 as a colored skeleton heatmap.
 #
-# NEW: Supports err shape (T,3) by mapping:
+# Supports err shape (T,3) by mapping:
 #   col0: shoulder-hip-knee  -> HIP joint error
 #   col1: otherHip-hip-knee  -> HIP joint error (combined with col0)
 #   col2: hip-knee-ankle     -> KNEE joint error
+#
 # Uses optional side.npy (T,) with -1=RIGHT, +1=LEFT, 0=unknown to choose which hip/knee to color.
 #
-# Example run:
-#   py highlight_error.py --mp4 WIN_20260228_14_32_19_Pro.mp4 --err 0_error.npy --side side.npy --use-yolo --flip-selfie --out overlay_test.mp4
+# FIX: Bone colors now use MAX(endpoint joints) instead of average, so torso (shoulder->hip) lines actually change color
+# when hip error is high even if shoulder error is 0.
+#
+# Example run (Git Bash):
+#   python3 highlight_error.py \
+#     --mp4 /c/Users/ryuy1/henshack2026/WIN_20260228_14_32_19_Pro.mp4 \
+#     --err /c/Users/ryuy1/henshack2026/0_error.npy \
+#     --side /c/Users/ryuy1/henshack2026/side.npy \
+#     --use-yolo --flip-selfie \
+#     --out /c/Users/ryuy1/henshack2026/overlay_test.mp4
+#
+# Example run (PowerShell/CMD):
+#   py highlight_error.py --mp4 "C:\Users\ryuy1\henshack2026\WIN_20260228_14_32_19_Pro.mp4" --err "C:\Users\ryuy1\henshack2026\0_error.npy" --side "C:\Users\ryuy1\henshack2026\side.npy" --use-yolo --flip-selfie --out "C:\Users\ryuy1\henshack2026\overlay_test.mp4"
 
 import argparse
 import os
@@ -22,15 +34,15 @@ import numpy as np
 # 13:l_knee,14:r_knee,15:l_ankle,16:r_ankle
 
 EDGES = [
-    (5, 7),  (7, 9),    # left arm
-    (6, 8),  (8, 10),   # right arm
-    (11, 13), (13, 15), # left leg
-    (12, 14), (14, 16), # right leg
-    (5, 6),             # shoulders
-    (11, 12),           # hips
-    (5, 11),            # left torso
-    (6, 12),            # right torso
-    (0, 5), (0, 6),     # head to shoulders (approx)
+    (5, 7),   (7, 9),     # left arm
+    (6, 8),   (8, 10),    # right arm
+    (11, 13), (13, 15),   # left leg
+    (12, 14), (14, 16),   # right leg
+    (5, 6),               # shoulders
+    (11, 12),             # hips
+    (5, 11),              # left torso
+    (6, 12),              # right torso
+    (0, 5),   (0, 6),     # head to shoulders (approx)
 ]
 
 # Joint indices (COCO/YOLOv8)
@@ -40,7 +52,6 @@ L_KNEE, R_KNEE = 13, 14
 # ---------------- Utility ----------------
 def safe_norm(v, axis=-1):
     n = np.linalg.norm(v, axis=axis)
-    # keep NaNs as NaNs
     if isinstance(n, np.ndarray):
         n[np.isnan(n)] = np.nan
     return n
@@ -48,7 +59,8 @@ def safe_norm(v, axis=-1):
 def normalize_err(err_frame, clip_max):
     """
     Map err values (float) to 0..255 uint8 using clip_max.
-    NaNs map to 0 (and will be skipped in drawing using mask).
+    NaNs map to 0.
+    Returns: (u8_array, finite_mask)
     """
     e = err_frame.astype(np.float32)
     out = np.zeros_like(e, dtype=np.uint8)
@@ -83,14 +95,15 @@ def draw_skeleton_heat(
 ):
     """
     Draw joints and edges colored by error intensity.
-    If bone_u8 provided, bones use it; else if joint_u8 provided, bones use avg endpoints.
-    Joints are drawn only if joint_u8 is provided.
+    If bone_u8 is provided, bones use it.
+    Else if joint_u8 is provided, bones use MAX(endpoint joints) (important for torso lines).
     """
     # bones
     if draw_bones:
         for bi, (i, j) in enumerate(EDGES):
             if kpts_cf[i] < conf_thres or kpts_cf[j] < conf_thres:
                 continue
+
             xi, yi = kpts_xy[i]
             xj, yj = kpts_xy[j]
             if not (np.isfinite(xi) and np.isfinite(yi) and np.isfinite(xj) and np.isfinite(yj)):
@@ -99,7 +112,8 @@ def draw_skeleton_heat(
             if bone_u8 is not None and bi < len(bone_u8):
                 v = int(bone_u8[bi])
             elif joint_u8 is not None:
-                v = int((int(joint_u8[i]) + int(joint_u8[j])) / 2)
+                # FIX: max not average, so shoulder->hip reflects hip error even if shoulder is 0
+                v = int(max(int(joint_u8[i]), int(joint_u8[j])))
             else:
                 v = 0
 
@@ -207,13 +221,13 @@ def main():
     args = ap.parse_args()
 
     if not args.draw_joints and not args.draw_bones:
-        # default: draw both if neither explicitly requested
         args.draw_joints = True
         args.draw_bones = True
 
+    # ---- Load error ----
     err = np.load(args.err)
 
-    # --- Accept (T,3) and map to (T,17) ---
+    # Accept (T,3) and map to (T,17)
     if err.ndim == 2 and err.shape[1] == 3:
         side = None
         if args.side is not None:
@@ -244,7 +258,7 @@ def main():
             f"Unsupported err shape {err.shape}. Expected (T,3), (T,17), (T,17,2), or (T,{len(EDGES)})."
         )
 
-    # Open video
+    # ---- Open video ----
     cap = cv2.VideoCapture(args.mp4)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video: {args.mp4}")

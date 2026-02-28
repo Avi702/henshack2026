@@ -4,7 +4,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 # ---------------- CONFIG ----------------
-INPUT_MP4 = r"C:\Users\ryuy1\henshack2026\WIN_20260228_16_31_01_Pro.mp4"
+INPUT_MP4 = r"C:\Users\ryuy1\henshack2026\WIN_20260228_14_32_19_Pro.mp4"
 CONF_THRES = 0.5
 EMA_ALPHA = 0.2
 RATIO_DEADZONE = 0.06
