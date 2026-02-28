@@ -104,7 +104,7 @@ def load_expert(lift_type: str, models_dir: str | Path | None = None) -> PoseAut
 def compute_mse(
     model: PoseAutoencoder,
     features: np.ndarray,
-) -> tuple[float, np.ndarray, np.ndarray]:
+) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
     """Run *features* through the autoencoder.
 
     Parameters
@@ -116,14 +116,16 @@ def compute_mse(
     -------
     mean_mse : float
     per_frame_mse : np.ndarray, shape (T,)
+    per_feature_mse : np.ndarray, shape (T, F)  — error per angle per frame
     reconstruction : np.ndarray, shape (T, F)
     """
     # Normalize to [0, 1] to match training (neuralnet.py divides by 180)
     x_norm = torch.tensor(features / 180.0, dtype=torch.float32).unsqueeze(0)  # (1, T, F)
     with torch.no_grad():
         x_hat_norm = model(x_norm)
-    per_frame = ((x_norm - x_hat_norm) ** 2).mean(dim=2).squeeze(0).numpy()  # (T,)
+    per_feature = ((x_norm - x_hat_norm) ** 2).squeeze(0).numpy()  # (T, F)
+    per_frame = per_feature.mean(axis=1)  # (T,)
     # Denormalize reconstruction back to degrees for downstream use
     recon = x_hat_norm.squeeze(0).numpy() * 180.0  # (T, F)
     log.info("compute_mse: mean=%.5f, max=%.5f over %d frames", per_frame.mean(), per_frame.max(), len(per_frame))
-    return float(per_frame.mean()), per_frame, recon
+    return float(per_frame.mean()), per_frame, per_feature, recon

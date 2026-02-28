@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 # Feature display names per lift type
 _FEATURE_NAMES = {
-    "squat": ["Knee", "Hip", "Spine", "Bar X"],
+    "squat": ["Back (S-H-K)", "Thigh (H-H-K)", "Shin (H-K-A)"],
     "bench": ["Elbow", "Shoulder", "Bar Diag"],
     "deadlift": ["Back", "Hip Hinge", "Bar-Shin"],
 }
@@ -94,6 +94,7 @@ def render_comparison_video(
     x_values: np.ndarray,
     x_hat_values: np.ndarray,
     per_frame_mse: np.ndarray,
+    per_feature_mse: np.ndarray | None,
     lift_type: str,
     output_path: str | Path,
     fps: float = 3.0,
@@ -101,10 +102,10 @@ def render_comparison_video(
 ) -> Path:
     """Create a side-by-side video: annotated frame | feature chart (X vs X_hat).
 
-    Left panel: the original frame with skeleton overlay.
+    Left panel: the original frame with per-segment error-colored skeleton.
     Right panel: line chart of user features vs expert reconstruction.
     """
-    from .overlay import draw_skeleton, _draw_banner
+    from .overlay import draw_skeleton_with_errors, _draw_banner
 
     feature_names = _FEATURE_NAMES.get(lift_type, [f"F{i}" for i in range(x_values.shape[1])])
 
@@ -117,13 +118,23 @@ def render_comparison_video(
 
         if kp is not None and mse_idx < len(per_frame_mse):
             err = float(per_frame_mse[mse_idx])
-            color = (0, 0, 255) if err > mse_threshold else (0, 255, 0)
-            draw_skeleton(left, kp, color=color)
-            _draw_banner(left, f"MSE: {err:.4f}", color)
+            banner_color = (0, 0, 255) if err > mse_threshold else (0, 255, 0)
+
+            feat_err = None
+            if per_feature_mse is not None and mse_idx < len(per_feature_mse):
+                feat_err = per_feature_mse[mse_idx]
+
+            draw_skeleton_with_errors(
+                left, kp,
+                feature_errors=feat_err,
+                mse_threshold=mse_threshold,
+                lift_type=lift_type,
+            )
+            _draw_banner(left, f"MSE: {err:.4f}", banner_color)
             chart_frame = mse_idx
             mse_idx += 1
         else:
-            draw_skeleton(left, kp, color=(255, 200, 0))
+            draw_skeleton_with_errors(left, kp, lift_type=lift_type)
             chart_frame = 0
 
         h, w = left.shape[:2]

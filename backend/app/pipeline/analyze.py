@@ -98,11 +98,12 @@ def run(
     model = load_expert(lift_type, models_dir=_MODELS_DIR)
     mse_mean: float | None = None
     per_frame_mse: np.ndarray | None = None
+    per_feature_mse: np.ndarray | None = None
     reconstruction: np.ndarray | None = None
 
     if model is not None and features.shape[0] > 0:
         log.info("[%s] running expert autoencoder inference …", run_id)
-        mse_mean, per_frame_mse, reconstruction = compute_mse(model, features)
+        mse_mean, per_frame_mse, per_feature_mse, reconstruction = compute_mse(model, features)
         log.info("[%s] mse_mean=%.5f", run_id, mse_mean)
     elif model is None:
         log.info("[%s] no expert model found — skipping scoring", run_id)
@@ -111,8 +112,8 @@ def run(
 
     # ── 6. issues + feedback ───────────────────────────────
     issues: list[Issue] = []
-    if per_frame_mse is not None:
-        issues = detect_issues(lift_type, features, per_frame_mse)
+    if per_feature_mse is not None:
+        issues = detect_issues(lift_type, per_feature_mse, per_frame_mse)
         log.info("[%s] detected %d issues", run_id, len(issues))
 
     fb = generate_feedback(lift_type, mse_mean, issues)
@@ -134,8 +135,10 @@ def run(
         form_label = verdict.label.replace("_", " ").title() if mse_mean is not None else None
         annotated_frames = overlay.annotate_frames(
             frames, keypoints, per_frame_mse,
+            per_feature_mse=per_feature_mse,
             mse_threshold=_MSE_OVERLAY_THRESHOLD,
             label=form_label,
+            lift_type=lift_type,
         )
         ann_name = f"{run_id}_annotated.mp4"
         render.render_annotated_video(
@@ -152,6 +155,7 @@ def run(
                 x_values=features,
                 x_hat_values=reconstruction,
                 per_frame_mse=per_frame_mse,
+                per_feature_mse=per_feature_mse,
                 lift_type=lift_type,
                 output_path=_OUTPUTS_DIR / cmp_name,
                 fps=effective_fps,

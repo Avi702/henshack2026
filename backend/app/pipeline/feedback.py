@@ -43,30 +43,42 @@ def _severity(mse: float) -> str:
 
 def detect_issues(
     lift_type: str,
-    features: np.ndarray,
-    per_frame_mse: np.ndarray,
+    per_feature_mse: np.ndarray,
+    per_frame_mse: np.ndarray | None = None,
     feature_mse_threshold: float = 0.03,
 ) -> list[Issue]:
-    """Identify form issues based on per-feature reconstruction error."""
+    """Identify form issues based on per-feature reconstruction error.
+
+    Parameters
+    ----------
+    per_feature_mse : shape (T, F) — reconstruction error per feature per frame
+    per_frame_mse : shape (T,) — overall MSE per frame (for finding worst frame)
+    """
     issue_map = _ISSUE_MAPS.get(lift_type, {})
     issues: list[Issue] = []
 
-    if features.size == 0 or per_frame_mse.size == 0:
+    if per_feature_mse.size == 0:
         return issues
 
-    # worst frame index (overall)
-    worst_frame = int(per_frame_mse.argmax())
+    # worst frame index (overall MSE or feature-mean)
+    if per_frame_mse is not None and per_frame_mse.size > 0:
+        worst_frame = int(per_frame_mse.argmax())
+    else:
+        worst_frame = int(per_feature_mse.mean(axis=1).argmax())
 
     for feat_idx, (code, msg) in issue_map.items():
-        if feat_idx >= features.shape[1]:
+        if feat_idx >= per_feature_mse.shape[1]:
             continue
-        col_var = float(np.var(features[:, feat_idx]))
-        if col_var > feature_mse_threshold:
+        # Mean reconstruction error for this feature across all frames
+        feat_mean_mse = float(per_feature_mse[:, feat_idx].mean())
+        if feat_mean_mse > feature_mse_threshold:
+            # Find the worst frame for THIS specific feature
+            feat_worst = int(per_feature_mse[:, feat_idx].argmax())
             issues.append(Issue(
                 code=code,
-                severity=_severity(col_var),
+                severity=_severity(feat_mean_mse),
                 message=msg,
-                evidence_frame=worst_frame,
+                evidence_frame=feat_worst,
             ))
 
     return issues
