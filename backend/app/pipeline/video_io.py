@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import subprocess
 from pathlib import Path
 
 import cv2
@@ -95,14 +96,54 @@ def write_video(
     out_path: str | Path,
     fps: float = 30.0,
 ) -> Path:
-    """Write *frames* to an mp4 file at *out_path*."""
+    """Write *frames* to an mp4 file at *out_path* (Chrome-friendly via ffmpeg)."""
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if not frames:
+        out_path.write_bytes(b"")
+        return out_path
+
     h, w = frames[0].shape[:2]
+
+    # 1) Write temp mp4 using OpenCV (fast, but may not be browser-friendly)
+    tmp_path = out_path.with_suffix(".tmp.mp4")
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    writer = cv2.VideoWriter(str(out_path), fourcc, fps, (w, h))
+    writer = cv2.VideoWriter(str(tmp_path), fourcc, float(fps), (w, h))
+    if not writer.isOpened():
+        raise RuntimeError(f"VideoWriter failed to open for {tmp_path}")
+
     for f in frames:
+        if f is None:
+            continue
+        # Ensure consistent size/type
+        if f.dtype != np.uint8:
+            f = f.astype(np.uint8)
+        if f.shape[:2] != (h, w):
+            f = cv2.resize(f, (w, h))
+        if len(f.shape) == 2:
+            f = cv2.cvtColor(f, cv2.COLOR_GRAY2BGR)
         writer.write(f)
+
     writer.release()
-    log.info("write_video: %d frames -> %s (%.1f fps)", len(frames), out_path, fps)
+
+    # 2) Transcode to H.264 for Chrome/Safari playback
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(tmp_path),
+        "-vcodec", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        str(out_path),
+    ]
+
+    try:
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        tmp_path.unlink(missing_ok=True)
+        log.info("write_video: transcoded -> %s (%.1f fps)", out_path, fps)
+    except Exception as e:
+        # If ffmpeg fails, fall back to temp file (still usable locally)
+        log.warning("ffmpeg transcode failed (%s). Falling back to OpenCV mp4.", e)
+        tmp_path.replace(out_path)
+
     return out_path
