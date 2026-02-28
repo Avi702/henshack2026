@@ -3,7 +3,6 @@ from ultralytics import YOLO
 import math
 import numpy as np
 
-# Load a YOLO pose model (not the regular detection model)
 model = YOLO("yolov8n-pose.pt")
 
 stream = cv2.VideoCapture(0)
