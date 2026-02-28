@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 # ── Lift configs (mirrors neuralnet.py LIFT_CONFIGS) ───────
 LIFT_CONFIGS = {
-    "squat": {"num_features": 4, "save_name": "squat_expert.pt"},
+    "squat": {"num_features": 3, "save_name": "squat_expert.pt"},
     "bench": {"num_features": 3, "save_name": "bench_expert.pt"},
     "deadlift": {"num_features": 3, "save_name": "deadlift_expert.pt"},
 }
@@ -26,30 +26,40 @@ LIFT_CONFIGS = {
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
-# ── Architecture (exact copy from neuralnet.py:32-69) ─────
+# ── Architecture (exact copy from neuralnet.py PoseAutoencoder) ─────
 class PoseAutoencoder(nn.Module):
-    def __init__(self, num_features: int, hidden_dim: int = 64, latent_dim: int = 16):
+    def __init__(self, num_features: int, hidden_dim: int = 128, latent_dim: int = 32):
         super().__init__()
         self.encoder_lstm = nn.LSTM(
             input_size=num_features,
             hidden_size=hidden_dim,
             num_layers=2,
             batch_first=True,
+            dropout=0.2,
         )
         self.encoder_linear = nn.Linear(hidden_dim, latent_dim)
+        self.activation = nn.ReLU()
+
         self.decoder_linear = nn.Linear(latent_dim, hidden_dim)
         self.decoder_lstm = nn.LSTM(
             input_size=hidden_dim,
             hidden_size=hidden_dim,
             num_layers=2,
             batch_first=True,
+            dropout=0.2,
         )
         self.output_layer = nn.Linear(hidden_dim, num_features)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _, (hidden, _) = self.encoder_lstm(x)
-        latent = self.encoder_linear(hidden[-1])
-        decoded_hidden = self.decoder_linear(latent)
+        last_hidden = hidden[-1]
+
+        latent_raw = self.encoder_linear(last_hidden)
+        latent = self.activation(latent_raw)
+
+        decoded_raw = self.decoder_linear(latent)
+        decoded_hidden = self.activation(decoded_raw)
+
         repeated = decoded_hidden.unsqueeze(1).repeat(1, x.size(1), 1)
         decoder_out, _ = self.decoder_lstm(repeated)
         return self.output_layer(decoder_out)
@@ -108,10 +118,12 @@ def compute_mse(
     per_frame_mse : np.ndarray, shape (T,)
     reconstruction : np.ndarray, shape (T, F)
     """
-    x = torch.tensor(features, dtype=torch.float32).unsqueeze(0)  # (1, T, F)
+    # Normalize to [0, 1] to match training (neuralnet.py divides by 180)
+    x_norm = torch.tensor(features / 180.0, dtype=torch.float32).unsqueeze(0)  # (1, T, F)
     with torch.no_grad():
-        x_hat = model(x)
-    per_frame = ((x - x_hat) ** 2).mean(dim=2).squeeze(0).numpy()  # (T,)
-    recon = x_hat.squeeze(0).numpy()  # (T, F)
+        x_hat_norm = model(x_norm)
+    per_frame = ((x_norm - x_hat_norm) ** 2).mean(dim=2).squeeze(0).numpy()  # (T,)
+    # Denormalize reconstruction back to degrees for downstream use
+    recon = x_hat_norm.squeeze(0).numpy() * 180.0  # (T, F)
     log.info("compute_mse: mean=%.5f, max=%.5f over %d frames", per_frame.mean(), per_frame.max(), len(per_frame))
     return float(per_frame.mean()), per_frame, recon

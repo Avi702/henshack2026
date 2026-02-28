@@ -20,7 +20,7 @@ This is a biomechanics analysis system for evaluating weightlifting form (squats
    - LSTM-based autoencoder that learns "expert" movement patterns per lift type
    - Separate models for squat, bench press, and deadlift
    - Each lift type has different feature counts:
-     - Squat: 4 features (Knee, Hip, Spine, Bar Path X)
+     - Squat: 3 features (shoulder-hip-knee angle, other_hip-hip-knee angle, hip-knee-ankle angle) — uses closer-side detection
      - Bench: 3 features (Elbow, Shoulder, Bar Path Diagonal)
      - Deadlift: 3 features (Back Rounding, Hip Hinge, Bar-to-Shin Distance)
    - Trained models saved as `{lift}_expert.pt` files

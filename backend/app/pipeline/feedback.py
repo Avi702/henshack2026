@@ -7,11 +7,11 @@ import numpy as np
 from ..schemas import AIFeedback, Issue
 
 # ── thresholds (per-feature MSE) ────────────────────────────
+# Squat features: [shoulder-hip-knee angle, other_hip-hip-knee angle, hip-knee-ankle angle]
 _SQUAT_ISSUE_MAP = {
-    0: ("KNEE_CAVE", "Knee angle deviates from expert pattern — possible knee cave or valgus"),
-    1: ("HIP_SHIFT", "Hip angle inconsistency — check for lateral shift or early rise"),
-    2: ("SPINE_FLEX", "Spine angle deviation — possible excessive forward lean or rounding"),
-    3: ("BAR_PATH", "Bar path drifting laterally — aim for a straight vertical bar path"),
+    0: ("HIP_ANGLE", "Hip angle (shoulder-hip-knee) deviates from expert pattern — check torso lean"),
+    1: ("HIP_SHIFT", "Hip alignment (cross-hip angle) inconsistency — check for lateral shift"),
+    2: ("KNEE_ANGLE", "Knee angle deviates from expert pattern — check depth and tracking"),
 }
 
 _BENCH_ISSUE_MAP = {
