@@ -7,7 +7,7 @@ INPUT_MP4 = r"C:\Users\ryuy1\henshack2026\WIN_20260228_14_32_19_Pro.mp4"
 CONF_THRES = 0.5
 EMA_ALPHA = 0.2
 RATIO_DEADZONE = 0.06
-FLIP_SELFIE = True              # matches your webcam setup; keep True if you want mirror behavior
+FLIP_SELFIE = True              
 # ---------------------------------------
 
 # Load YOLO pose model
