@@ -36,6 +36,13 @@ _ALLOWED_EXTENSIONS = {".mp4", ".mov", ".webm"}
 
 # ── Endpoints ───────────────────────────────────────────────
 
+@app.get("/")
+def root():
+    return {
+        "message": "HenShack backend running",
+        "try": ["/health", "POST /analyze/video", "/docs"]
+    }
+
 @app.get("/health")
 def health():
     return {"ok": True}
