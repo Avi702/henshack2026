@@ -4,67 +4,81 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau # NEW: Scheduler
 from torch.utils.data import Dataset, DataLoader
 
 # ==========================================
-# 1. THE DATASET LOADER
+# 1. THE DATASET LOADER (UPGRADED)
 # ==========================================
 class LiftDataset(Dataset):
-    def __init__(self, data_dir):
-        """Loads all .npy files from the specified directory."""
+    def __init__(self, data_dir, add_noise=True):
         self.data_dir = data_dir
-        self.file_names = [f for f in os.listdir(data_dir) if f.endswith('.npy')]
+        self.add_noise = add_noise
+        self.files = [f for f in os.listdir(data_dir) if f.endswith('.npy')]
         
-        if len(self.file_names) == 0:
-            print(f"Warning: No .npy files found in {data_dir}. Add data before training!")
-
+        if len(self.files) == 0:
+            print(f"⚠️ Warning: No .npy files found in {data_dir}")
+            
     def __len__(self):
-        return len(self.file_names)
-
+        return len(self.files)
+        
     def __getitem__(self, idx):
-        file_path = os.path.join(self.data_dir, self.file_names[idx])
-        data = np.load(file_path)
-        return torch.tensor(data, dtype=torch.float32)
+        file_path = os.path.join(self.data_dir, self.files[idx])
+        data = np.load(file_path).astype(np.float32)
+        
+        # --- NEW: NORMALIZATION ---
+        # Scale 0-180 degrees down to 0.0 - 1.0 range
+        data = data / 180.0 
+        
+        # --- NEW: DATA AUGMENTATION ---
+        # Inject microscopic noise to artificially expand the 120 video dataset
+        if self.add_noise:
+            # 0.01 in normalized space is about 1.8 degrees of variance
+            noise = np.random.normal(0, 0.01, data.shape).astype(np.float32)
+            data = data + noise
+            
+        return torch.tensor(data)
 
 # ==========================================
 # 2. THE UNIVERSAL AUTOENCODER MODEL
 # ==========================================
 class PoseAutoencoder(nn.Module):
-    def __init__(self, num_features, hidden_dim=64, latent_dim=16):
+    def __init__(self, num_features, hidden_dim=128, latent_dim=32):
         super(PoseAutoencoder, self).__init__()
         
-        # ENCODER: Compresses the time-series
         self.encoder_lstm = nn.LSTM(
             input_size=num_features, 
             hidden_size=hidden_dim, 
             num_layers=2, 
-            batch_first=True
+            batch_first=True,
+            dropout=0.2 
         )
         self.encoder_linear = nn.Linear(hidden_dim, latent_dim)
+        self.activation = nn.ReLU()
         
-        # DECODER: Reconstructs the time-series
         self.decoder_linear = nn.Linear(latent_dim, hidden_dim)
         self.decoder_lstm = nn.LSTM(
             input_size=hidden_dim, 
             hidden_size=hidden_dim, 
             num_layers=2, 
-            batch_first=True
+            batch_first=True,
+            dropout=0.2
         )
         self.output_layer = nn.Linear(hidden_dim, num_features)
 
     def forward(self, x):
-        # Encode
         _, (hidden, _) = self.encoder_lstm(x)
         last_hidden = hidden[-1]
-        latent = self.encoder_linear(last_hidden)
         
-        # Decode
-        decoded_hidden = self.decoder_linear(latent)
-        # Repeat the hidden state for every frame in the sequence
+        latent_raw = self.encoder_linear(last_hidden)
+        latent = self.activation(latent_raw)
+        
+        decoded_raw = self.decoder_linear(latent)
+        decoded_hidden = self.activation(decoded_raw)
+        
         repeated_hidden = decoded_hidden.unsqueeze(1).repeat(1, x.size(1), 1)
         decoder_out, _ = self.decoder_lstm(repeated_hidden)
         
-        # Final output mapping back to features
         reconstruction = self.output_layer(decoder_out)
         return reconstruction
 
@@ -73,18 +87,18 @@ class PoseAutoencoder(nn.Module):
 # ==========================================
 LIFT_CONFIGS = {
     'squat': {
-        'data_dir': './training_tensors/squats/',
-        'num_features': 4, # Knee, Hip, Spine, Bar Path X
+        'data_dir': 'training_tensors/squats/',
+        'num_features': 3, 
         'save_name': 'squat_expert.pt'
     },
     'bench': {
-        'data_dir': './training_tensors/bench/',
-        'num_features': 3, # Elbow, Shoulder, Bar Path Diagonal
+        'data_dir': 'training_tensors/bench/',
+        'num_features': 3, 
         'save_name': 'bench_expert.pt'
     },
     'deadlift': {
-        'data_dir': './training_tensors/deadlifts/',
-        'num_features': 3, # Back Rounding, Hip Hinge, Bar-to-Shin Distance
+        'data_dir': 'training_tensors/deadlifts/',
+        'num_features': 3, 
         'save_name': 'deadlift_expert.pt'
     }
 }
@@ -95,77 +109,72 @@ def train_autoencoder(lift_type, epochs, batch_size, learning_rate):
     print(f"\n{'='*40}")
     print(f" TRAINING EXPERT MODEL: {lift_type.upper()}")
     print(f"{'='*40}")
-    print(f"Data Directory : {config['data_dir']}")
-    print(f"Input Features : {config['num_features']} per frame")
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Compute Device : {device}\n")
     
-    # Initialize DataLoader
-    dataset = LiftDataset(data_dir=config['data_dir'])
+    dataset = LiftDataset(data_dir=config['data_dir'], add_noise=True)
     if len(dataset) == 0:
-        return # Abort if no data
+        return 
         
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-    
-    # Initialize Model, Loss, and Optimizer
     model = PoseAutoencoder(num_features=config['num_features']).to(device)
+    
+    if os.path.exists(config['save_name']):
+        print(f"🔄 Found existing model '{config['save_name']}'. Loading weights...")
+        model.load_state_dict(torch.load(config['save_name'], map_location=device))
+    else:
+        print("🚀 Starting training from scratch...")
+
     criterion = nn.MSELoss() 
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    
+    # --- NEW: SCHEDULER ---
+    # If loss doesn't drop for 10 epochs, cut learning rate by 50%
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
+    
+    best_loss = float('inf')
 
-    # Training Loop
     model.train()
     for epoch in range(epochs):
         total_loss = 0.0
         for batch_data in dataloader:
             batch_data = batch_data.to(device)
             
-            # Forward pass & Reconstruction
             reconstruction = model(batch_data)
             loss = criterion(reconstruction, batch_data)
             
-            # Backpropagation
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             
             total_loss += loss.item()
             
-        # Logging
-        if (epoch + 1) % 20 == 0 or epoch == 0:
-            avg_loss = total_loss / len(dataloader)
-            print(f"Epoch [{epoch+1}/{epochs}] | MSE Loss: {avg_loss:.5f}")
+        avg_loss = total_loss / len(dataloader)
+        
+        # Step the scheduler based on the current epoch's loss
+        scheduler.step(avg_loss)
+        
+        saved_flag = ""
+        if avg_loss < best_loss:
+            best_loss = avg_loss
+            torch.save(model.state_dict(), config['save_name'])
+            saved_flag = "💾 [NEW BEST SAVED]"
+        
+        if (epoch + 1) % 10 == 0 or epoch == 0 or saved_flag:
+            print(f"Epoch [{epoch+1}/{epochs}] | MSE Loss: {avg_loss:.6f} {saved_flag}")
 
-    # Save the finalized expert model
-    torch.save(model.state_dict(), config['save_name'])
-    print(f"\nSuccess! Expert saved as '{config['save_name']}'")
+    print(f"\n✅ Training Complete! Best MSE Loss: {best_loss:.6f}")
 
-# ==========================================
-# 4. COMMAND LINE INTERFACE (CLI)
-# ==========================================
 if __name__ == "__main__":
-    # Ensure directories exist
     for lift, cfg in LIFT_CONFIGS.items():
         os.makedirs(cfg['data_dir'], exist_ok=True)
         
-    # Setup Argument Parser
     parser = argparse.ArgumentParser(description="Train a Biomechanics Expert Autoencoder")
-    
-    parser.add_argument('--lift', type=str, required=True, choices=['squat', 'bench', 'deadlift'],
-                        help="Which lift model do you want to train?")
-    parser.add_argument('--epochs', type=int, default=100, 
-                        help="Number of training loops (default: 100)")
-    parser.add_argument('--batch', type=int, default=16, 
-                        help="Batch size for training (default: 16)")
-    parser.add_argument('--lr', type=float, default=0.001, 
-                        help="Learning rate (default: 0.001)")
+    parser.add_argument('--lift', type=str, required=True, choices=['squat', 'bench', 'deadlift'])
+    parser.add_argument('--epochs', type=int, default=150)
+    parser.add_argument('--batch', type=int, default=16)
+    parser.add_argument('--lr', type=float, default=0.001)
                         
     args = parser.parse_args()
     
-    # Execute training with CLI arguments
-    train_autoencoder(
-        lift_type=args.lift, 
-        epochs=args.epochs, 
-        batch_size=args.batch, 
-        learning_rate=args.lr
-    )
+    train_autoencoder(args.lift, args.epochs, args.batch, args.lr)

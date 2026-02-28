@@ -1,9 +1,10 @@
 import cv2
 from ultralytics import YOLO
 import numpy as np
+from scipy.interpolate import interp1d
 
 # ---------------- CONFIG ----------------
-INPUT_MP4 = r"C:\Users\ryuy1\henshack2026\WIN_20260228_14_32_19_Pro.mp4"
+INPUT_MP4 = r"/Users/avnee/henshack2026/WIN_20260228_14_32_19_Pro.mp4"
 CONF_THRES = 0.5
 EMA_ALPHA = 0.2
 RATIO_DEADZONE = 0.06
@@ -160,9 +161,43 @@ side_np = np.asarray(side_per_frame, dtype=np.int8)         # shape (num_frames,
 print("angles_np shape:", angles_np.shape)
 print("side_np shape:", side_np.shape)
 
-# If you want to save them:
-# np.save("angles.npy", angles_np)
-# np.save("side.npy", side_np)
 
-# angles_np is your numpy array output (per-frame angles)
-# columns: [shoulder-hip-knee, hip-hip-knee, hip-knee-ankle]
+def interpolate_tensor(angles_array, target_length=100):
+    """Stretches or shrinks an array of shape (N, 3) to (100, 3) and removes NaNs."""
+    N = angles_array.shape[0]
+    if N == 0:
+        return np.zeros((target_length, 3))
+        
+    old_time = np.linspace(0, 1, N)
+    new_time = np.linspace(0, 1, target_length)
+    resampled_array = np.zeros((target_length, 3))
+    
+    for col_idx in range(3):
+        col_data = angles_array[:, col_idx]
+        valid_mask = ~np.isnan(col_data)
+        
+        if valid_mask.sum() == 0:
+            resampled_array[:, col_idx] = 0.0
+            continue
+            
+        valid_time = old_time[valid_mask]
+        valid_data = col_data[valid_mask]
+        
+        # We need at least 2 points to interpolate
+        if len(valid_data) == 1:
+            resampled_array[:, col_idx] = valid_data[0]
+            continue
+            
+        interpolator = interp1d(valid_time, valid_data, kind='linear', fill_value="extrapolate")
+        resampled_array[:, col_idx] = interpolator(new_time)
+        
+    return resampled_array
+
+# Interpolate to 100 frames for model inference
+final_tensor = interpolate_tensor(angles_np, target_length=100)
+
+print("final_tensor shape (ready for model):", final_tensor.shape)
+
+# Save to the root directory
+np.save("user_video.npy", final_tensor)
+print("Saved interpolated array to user_video.npy")
