@@ -13,6 +13,9 @@ import Uploader, { type UploaderHandle } from "@/components/Uploader";
 import StatusPill from "@/components/StatusPill";
 import ResultCard from "@/components/ResultCard";
 import WorkoutLogger from "@/components/WorkoutLogger";
+import HomePage from "@/components/HomePage";
+import LearnPage from "@/components/LearnPage";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -35,7 +38,7 @@ export default function Home() {
   const uploaderRef = useRef<UploaderHandle>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  const [tab, setTab] = useState<AppTab>("analyze");
+  const [tab, setTab] = useState<AppTab>("home");
   const [mode, setMode] = useState<InputMode>("record");
   const [liftType, setLiftType] = useState<LiftType>("squat");
   const [status, setStatus] = useState<AppStatus>("idle");
@@ -105,12 +108,20 @@ export default function Home() {
   const isProcessing = status === "uploading" || status === "analyzing";
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen relative overflow-hidden bg-background text-foreground transition-colors duration-300">
+      
+      {/* Animated gradient blobs in background */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden mix-blend-screen dark:mix-blend-screen opacity-70">
+        <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-125 max-h-125 rounded-full bg-(--blob-1) blur-[80px] animate-blob" />
+        <div className="absolute top-[20%] right-[-5%] w-[35vw] h-[35vw] max-w-112.5 max-h-112.5 rounded-full bg-(--blob-2) blur-[80px] animate-blob animation-delay-2000" />
+        <div className="absolute bottom-[-10%] left-[20%] w-[45vw] h-[45vw] max-w-150 max-h-150 rounded-full bg-(--blob-3) blur-[80px] animate-blob animation-delay-4000" />
+      </div>
+
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-zinc-800/50 bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800/50 bg-background/80 backdrop-blur-xl transition-colors">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-lg font-black text-white shadow-lg shadow-orange-500/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-orange-500 to-amber-500 text-lg font-black text-white shadow-lg shadow-orange-500/20">
               S
             </div>
             <span className="text-lg font-bold tracking-tight">
@@ -118,44 +129,64 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Tab navigation */}
-          <nav className="flex rounded-xl bg-zinc-800/50 p-0.5">
-            {(
-              [
-                { key: "analyze", label: "Analyze", icon: "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" },
-                { key: "progress", label: "Progress", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
-              ] as const
-            ).map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-all ${
-                  tab === t.key
-                    ? "bg-zinc-700 text-white shadow"
-                    : "text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
+          <div className="flex items-center gap-2">
+            {/* Tab navigation */}
+            <nav className="flex rounded-xl bg-zinc-200 dark:bg-zinc-800/50 p-0.5 overflow-x-auto border border-zinc-300 dark:border-zinc-700/50">
+              {(
+                [
+                  { key: "home", label: "Home", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+                  { key: "learn", label: "Learn", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
+                  { key: "analyze", label: "Analyze", icon: "M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" },
+                  { key: "progress", label: "Progress", icon: "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-all ${
+                    tab === t.key
+                      ? "bg-zinc-100 dark:bg-zinc-700 text-zinc-900 dark:text-white shadow"
+                      : "text-zinc-600 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
+                  }`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d={t.icon}
-                  />
-                </svg>
-                {t.label}
-              </button>
-            ))}
-          </nav>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d={t.icon}
+                    />
+                  </svg>
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-4 py-6">
+      <main className="mx-auto max-w-3xl px-4 py-6 relative z-10">
+        
+        {/* ═══ HOME TAB ═══ */}
+        {tab === "home" && (
+          <div className="animate-fade-in">
+             <HomePage onNavigate={setTab} />
+          </div>
+        )}
+
+        {/* ═══ LEARN TAB ═══ */}
+        {tab === "learn" && (
+          <div className="animate-fade-in">
+             <LearnPage />
+          </div>
+        )}
+
         {/* ═══ ANALYZE TAB ═══ */}
         {tab === "analyze" && (
           <div className="space-y-6 animate-fade-in">
@@ -207,12 +238,13 @@ export default function Home() {
                   {LIFTS.map((l) => (
                     <button
                       key={l.value}
-                      disabled={isProcessing}
+                      disabled={isProcessing || l.value !== "squat"}
                       onClick={() => setLiftType(l.value)}
+                      title={l.value !== "squat" ? "Expert model for this lift is still training!" : "Squat Expert Model Active"}
                       className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-all ${
                         liftType === l.value
                           ? "bg-accent/15 text-accent ring-1 ring-accent/30"
-                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
                       }`}
                     >
                       {l.label}
@@ -359,7 +391,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800/50 py-6 text-center text-xs text-zinc-600">
+      <footer className="border-t border-zinc-200 dark:border-zinc-800/50 py-6 text-center text-xs text-zinc-500 dark:text-zinc-600 transition-colors">
         SquatBuddy &middot; Built at HenHacks 2026
       </footer>
     </div>

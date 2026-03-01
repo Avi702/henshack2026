@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Exercise Visualization</title>
+  <style>
+    body { margin:0; overflow:hidden; background:transparent; display:flex; justify-content:center; align-items:center; height:100vh; }
+    canvas { display:block; }
+    #loading { position:absolute; color:#71717a; font:600 14px/1 system-ui; letter-spacing:1px; animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    #label { position:absolute; bottom:24px; left:50%; transform:translateX(-50%); color:#fff; font:600 13px/1 system-ui; letter-spacing:3px; text-transform:uppercase; opacity:.55; pointer-events:none; }
+  </style>
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <div id="loading">LOADING 3D ENGINE…</div>
+  <div id="label"></div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const lift = new URLSearchParams(location.search).get('type') || 'squat';
+    document.getElementById('label').textContent = lift;
+
+    // ── Scene ──────────────────────────────────────────────────────
+    const scene    = new THREE.Scene();
+    const cam      = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 1000);
+    cam.position.set(3.4, 1.7, 3.4);
+
+    const renderer = new THREE.WebGLRenderer({ alpha:true, antialias:true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    const ctrl = new OrbitControls(cam, renderer.domElement);
+    ctrl.enableDamping = true; ctrl.dampingFactor = 0.05;
+    ctrl.autoRotate = true;    ctrl.autoRotateSpeed = 1.2;
+    ctrl.target.set(0, 0.85, 0);
+
+    // ── Materials ──────────────────────────────────────────────────
+    const M = {
+      steel  : new THREE.MeshStandardMaterial({ color:0x909090, roughness:0.15, metalness:0.96 }),
+      plate  : new THREE.MeshStandardMaterial({ color:0xeb5e28, roughness:0.30, metalness:0.25 }),
+      collar : new THREE.MeshStandardMaterial({ color:0x252525, roughness:0.20, metalness:0.92 }),
+      skin   : new THREE.MeshStandardMaterial({ color:0xcf8b5c, roughness:0.65 }),
+      shirt  : new THREE.MeshStandardMaterial({ color:0x151c2e, roughness:0.72 }),
+      pants  : new THREE.MeshStandardMaterial({ color:0x090d18, roughness:0.75 }),
+      shoe   : new THREE.MeshStandardMaterial({ color:0x0e0e0e, roughness:0.88 }),
+      floor  : new THREE.MeshStandardMaterial({ color:0x161616, roughness:0.96 }),
+      bench  : new THREE.MeshStandardMaterial({ color:0x0b0b0b, roughness:0.82 }),
+      pad    : new THREE.MeshStandardMaterial({ color:0x191919, roughness:0.96 }),
+    };
+
+    // ── Floor ──────────────────────────────────────────────────────
+    const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(7,.04,7), M.floor);
+    floorMesh.position.y = -.02; floorMesh.receiveShadow = true; scene.add(floorMesh);
+
+    // ── Lights ─────────────────────────────────────────────────────
+    scene.add(new THREE.AmbientLight(0xffffff, 0.58));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.55);
+    sun.position.set(5, 10, 5); sun.castShadow = true; scene.add(sun);
+    const fill = new THREE.DirectionalLight(0x6688bb, 0.38);
+    fill.position.set(-4, 3, -3); scene.add(fill);
+    const accent = new THREE.PointLight(0xf97316, 4.5, 9);
+    accent.position.set(-2, 3, -2); scene.add(accent);
+
+    // ── Geometry helpers ───────────────────────────────────────────
+    function mkBox(w, h, d, mat, py=0) {
+      const g = new THREE.BoxGeometry(w, h, d);
+      if (py) g.translate(0, py, 0);
+      const m = new THREE.Mesh(g, mat); m.castShadow = true; return m;
+    }
+    function mkCyl(rt, rb, h, segs, mat, py=0) {
+      const g = new THREE.CylinderGeometry(rt, rb, h, segs);
+      if (py) g.translate(0, py, 0);
+      const m = new THREE.Mesh(g, mat); m.castShadow = true; return m;
+    }
+    function mkSph(r, mat) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 16), mat);
+      m.castShadow = true; return m;
+    }
+    function grp(parent, lx=0, ly=0, lz=0) {
+      const g = new THREE.Group(); g.position.set(lx, ly, lz);
+      if (parent) parent.add(g); return g;
+    }
+
+    // ── Barbell Assembly ───────────────────────────────────────────
+    // bar group origin = bar centre; shaft runs along world X (rotation.z = PI/2)
+    const barGrp = new THREE.Group(); scene.add(barGrp);
+
+    const shaft = mkCyl(0.014, 0.014, 2.2, 16, M.steel);
+    shaft.rotation.z = Math.PI/2; barGrp.add(shaft);
+
+    // Knurling rings
+    [-0.52, -0.44, 0.44, 0.52].forEach(x => {
+      const k = mkCyl(0.017, 0.017, 0.024, 16, M.collar);
+      k.rotation.z = Math.PI/2; k.position.x = x; barGrp.add(k);
+    });
+    // Inner sleeve collars
+    [-0.65, 0.65].forEach(x => {
+      const c = mkCyl(0.026, 0.026, 0.034, 16, M.collar);
+      c.rotation.z = Math.PI/2; c.position.x = x; barGrp.add(c);
+    });
+
+    // Plates — stacked per side
+    function addPlates(side) {
+      const specs = [
+        { r:0.225, t:0.056, m:M.plate  },   // 45 lb
+        { r:0.195, t:0.048, m:M.steel  },   // 25 lb
+        { r:0.168, t:0.042, m:M.collar },   // 10 lb
+      ];
+      let ox = 0.70;
+      specs.forEach(({ r, t, m }) => {
+        const p = mkCyl(r, r, t, 36, m);
+        p.rotation.z = Math.PI/2; p.position.x = side * (ox + t/2); barGrp.add(p);
+        // Centre hole
+        const h = mkCyl(0.018, 0.018, t+0.004, 12, M.collar);
+        h.rotation.z = Math.PI/2; h.position.x = side * (ox + t/2); barGrp.add(h);
+        ox += t + 0.009;
+      });
+      // End cap
+      const cap = mkCyl(0.021, 0.021, 0.042, 12, M.collar);
+      cap.rotation.z = Math.PI/2; cap.position.x = side * (ox + 0.021); barGrp.add(cap);
+    }
+    addPlates(1); addPlates(-1);
+
+    // ── Human Rig ──────────────────────────────────────────────────
+    // All positions relative to floor (y=0).
+    // Standard pose dimensions (metres, approx 1.78 m tall):
+    //   ankle ~0.08, knee ~0.47, hip ~0.92, shoulder ~1.44
+
+    const root  = grp(scene);
+    const hips  = grp(root);          // position animated each frame
+
+    // Torso: pivot at hip joint, mesh grows upward
+    const torso = grp(hips);
+    torso.add(mkBox(0.30, 0.54, 0.20, M.shirt, 0.27));
+
+    // Shoulders group at top of torso
+    const shoulderHub = grp(torso, 0, 0.54, 0);
+
+    // Head / neck
+    const nk = mkCyl(0.043, 0.039, 0.09, 10, M.skin, -0.045);
+    nk.position.y = 0.048; shoulderHub.add(nk);
+    const hd = mkSph(0.118, M.skin); hd.position.y = 0.205; shoulderHub.add(hd);
+
+    // ── Arm factory ────────────────────────────────────────────────
+    // Returns groups: { pivot, upper, elbowGrp, fore, wrist }
+    // Rest pose: arm hangs straight down (-Y). IK writes to upper.quaternion, fore.quaternion.
+    const AL1 = 0.30;   // upper-arm length
+    const AL2 = 0.28;   // forearm length
+
+    function makeArm(side) {
+      const pivot    = grp(shoulderHub, side * 0.18, 0, 0);
+      const upper    = grp(pivot);                                          // IK-driven
+      upper.add(mkCyl(0.043, 0.036, AL1, 10, M.shirt, -AL1/2));
+      const elbowGrp = grp(upper, 0, -AL1, 0);                            // elbow joint (no rotation)
+      const fore     = grp(elbowGrp);                                      // IK-driven
+      fore.add(mkCyl(0.035, 0.029, AL2, 10, M.skin, -AL2/2));
+      const wrist    = grp(fore, 0, -AL2, 0);
+      // Hand: width=X (grips bar running along X), height=Y (palm thickness), depth=Z
+      const hand     = mkBox(0.08, 0.044, 0.072, M.skin); hand.position.y = -0.022; wrist.add(hand);
+      return { pivot, upper, elbowGrp, fore, wrist };
+    }
+    const LA = makeArm(-1);   // left arm
+    const RA = makeArm( 1);   // right arm
+
+    // ── Leg factory ────────────────────────────────────────────────
+    const LL1 = 0.46;   // thigh length
+    const LL2 = 0.44;   // shin length
+
+    function makeLeg(side) {
+      const hipPivot = grp(hips, side * 0.115, 0, 0);
+      const thigh    = grp(hipPivot);    // IK-driven
+      thigh.add(mkCyl(0.070, 0.058, LL1, 12, M.pants, -LL1/2));
+      const kneeGrp  = grp(thigh, 0, -LL1, 0);
+      const shin     = grp(kneeGrp);    // IK-driven
+      shin.add(mkCyl(0.053, 0.041, LL2, 12, M.pants, -LL2/2));
+      const ankle    = grp(shin, 0, -LL2, 0);
+      const foot     = mkBox(0.077, 0.072, 0.23, M.shoe); foot.position.set(0, -0.036, 0.064); ankle.add(foot);
+      return { hipPivot, thigh, kneeGrp, shin, ankle };
+    }
+    const LL = makeLeg(-1);   // left leg
+    const RL = makeLeg( 1);   // right leg
+
+    // ── Bench ──────────────────────────────────────────────────────
+    if (lift === 'bench') {
+      const bg = grp(scene);
+      [[-0.22,-0.52],[0.22,-0.52],[-0.22,0.54],[0.22,0.54]].forEach(([x,z]) => {
+        const l = mkCyl(0.029, 0.029, 0.46, 8, M.bench); l.position.set(x, 0.23, z); bg.add(l);
+      });
+      const benchBox1 = mkBox(0.48, 0.04, 1.20, M.bench);
+      benchBox1.position.copy(new THREE.Vector3(0, 0.46, 0));
+      bg.add(benchBox1);
+      
+      const benchBox2 = mkBox(0.38, 0.075, 1.12, M.pad);
+      benchBox2.position.copy(new THREE.Vector3(0, 0.49, 0));
+      bg.add(benchBox2);
+    }
+
+    // ── 2-Bone IK (quaternion, pole-vector) ────────────────────────
+    // Rotates segA (upper) and segB (forearm/shin) so segB's far end reaches targetWorld.
+    // Hierarchy: rootGrp → segA → elbow/kneeGrp (at 0,-L1,0) → segB → [end at 0,-L2,0]
+    // poleDirWorld: unit direction indicating where the middle joint should bend toward.
+    //
+    // After the call, the chain end (wrist/ankle) will be at targetWorld IF within reach.
+    // If out of reach, the chain fully extends toward the target.
+
+    const _restDown = new THREE.Vector3(0, -1, 0);
+
+    function solveIK(rootGrp, segA, segB, targetWorld, poleDirWorld, L1, L2) {
+      // Work in rootGrp local space
+      const inv   = new THREE.Matrix4().copy(rootGrp.matrixWorld).invert();
+      const localT = targetWorld.clone().applyMatrix4(inv);
+      const localP = poleDirWorld.clone().transformDirection(inv);  // direction only
+
+      const dist  = Math.min(localT.length(), L1 + L2 - 0.005);
+      const reach = localT.clone().normalize().multiplyScalar(dist);
+      const rDir  = reach.clone().normalize();
+
+      // Law of cosines — angle at root (shoulder/hip)
+      const cosA = Math.max(-1, Math.min(1, (L1*L1 + dist*dist - L2*L2) / (2*L1*dist)));
+      const angA = Math.acos(cosA);
+
+      // Pole perpendicular to reach line — defines bend plane
+      let pp = localP.clone().sub(rDir.clone().multiplyScalar(rDir.dot(localP)));
+      if (pp.lengthSq() < 1e-8) {
+        // Pole parallel to reach: pick arbitrary perp
+        pp.set(Math.abs(rDir.y) < 0.9 ? 0 : 1, Math.abs(rDir.y) < 0.9 ? 1 : 0, 0);
+        pp.sub(rDir.clone().multiplyScalar(rDir.dot(pp)));
+      }
+      pp.normalize();
+
+      // Direction from root to mid joint (elbow/knee)
+      const midDir = rDir.clone().multiplyScalar(Math.cos(angA))
+                        .add(pp.clone().multiplyScalar(Math.sin(angA)));
+      midDir.normalize();
+
+      // Direction from mid joint to end (wrist/ankle)
+      const midPt  = midDir.clone().multiplyScalar(L1);
+      const toEnd  = reach.clone().sub(midPt); toEnd.normalize();
+
+      // ── Apply rotations via quaternion ──
+      // segA: rotate rest (-Y) → midDir
+      const qA = new THREE.Quaternion().setFromUnitVectors(_restDown, midDir);
+      segA.quaternion.copy(qA);
+
+      // segB: in segA local space, rotate rest (-Y) → toEnd
+      const toEndInA = toEnd.clone().applyQuaternion(new THREE.Quaternion().copy(qA).invert());
+      segB.quaternion.copy(new THREE.Quaternion().setFromUnitVectors(_restDown, toEndInA));
+    }
+
+    // ── Snap bar to actual wrist world positions ───────────────────
+    // Guarantees bar shaft is exactly where the hands are.
+    // The bar is always horizontal (rotation = 0) running along world X.
+    // Its position is the midpoint of the two wrist world positions.
+    const _lw = new THREE.Vector3(), _rw = new THREE.Vector3();
+
+    function snapBarToWrists() {
+      scene.updateMatrixWorld(true);
+      LA.wrist.getWorldPosition(_lw);
+      RA.wrist.getWorldPosition(_rw);
+      barGrp.position.set(
+        (_lw.x + _rw.x) * 0.5,
+        (_lw.y + _rw.y) * 0.5,
+        (_lw.z + _rw.z) * 0.5
+      );
+      barGrp.rotation.set(0, 0, 0);
+    }
+
+    const lerp = THREE.MathUtils.lerp;
+
+    // ═══════════════════════════════════════════════════════════════
+    //  SQUAT — Low-bar back squat
+    //
+    //  Key cues:
+    //    • Feet planted (~shoulder width), toes out ~30°
+    //    • Hips push BACK then DOWN — hip crease below parallel at bottom
+    //    • Shins stay nearly vertical (slight forward lean ≤ 20°)
+    //    • Knees track over toes, not past heel
+    //    • Chest up; moderate forward torso lean from hip hinge
+    //    • Bar sits on upper traps (rear deltoids); wide grip, elbows pointing DOWN
+    // ═══════════════════════════════════════════════════════════════
+    function poseSquat(t) {
+      // ── 1. Hip position: descend and push BACK ──
+      const hipY = lerp(0.92, 0.50, t);
+      const hipZ = lerp(0.00,-0.25, t);   // key: hips travel backward
+      hips.position.set(0, hipY, hipZ);
+      hips.rotation.set(0, 0, 0);
+
+      // ── 2. Torso: slight forward lean (hip hinge) ──
+      const lean = lerp(0.0, 0.36, t);
+      torso.rotation.set(lean, 0, 0);
+
+      // ── 3. Update matrices so shoulder positions are current ──
+      scene.updateMatrixWorld(true);
+
+      // ── 4. Leg IK: feet stay planted on floor ──
+      // Ankle targets: fixed on floor (ankle joint ~4 cm above floor)
+      // Toes pointed out → foot is not at (±0.13, 0, 0) but the ankle is
+      const lAnkW = new THREE.Vector3(-0.145, 0.04, 0.02);
+      const rAnkW = new THREE.Vector3( 0.145, 0.04, 0.02);
+
+      // Knee poles: forward and slightly outward (knees track over toes)
+      const lKPole = new THREE.Vector3(-0.2, 0, 1).normalize();
+      const rKPole = new THREE.Vector3( 0.2, 0, 1).normalize();
+
+      solveIK(LL.hipPivot, LL.thigh, LL.shin, lAnkW, lKPole, LL1, LL2);
+      solveIK(RL.hipPivot, RL.thigh, RL.shin, rAnkW, rKPole, LL1, LL2);
+
+      // Ankle: small dorsiflexion to keep foot flat (counteracts shin forward lean)
+      LL.ankle.rotation.set(-t * 0.13, 0, 0);
+      RL.ankle.rotation.set(-t * 0.13, 0, 0);
+
+      // ── 5. Arm IK — arms stationary holding the bar, moving with torso ──
+      // Calculate stationary shoulder world position but bar rests fixed relative to it
+      const shY = hipY + 0.54 * Math.cos(lean);    // shoulder world Y
+      const shZ = hipZ - 0.54 * Math.sin(lean);    // shoulder world Z
+      
+      // Bar stays strictly stationary relative to the shoulder moving in world space
+      const tarY = shY - 0.035;
+      const tarZ = shZ - 0.105;
+
+      const GRIP = 0.46;
+      const lGrip = new THREE.Vector3(-GRIP, tarY, tarZ);
+      const rGrip = new THREE.Vector3( GRIP, tarY, tarZ);
+
+      // Elbows point strictly DOWN, completely stationary relative to body
+      const lEPole = new THREE.Vector3(-0.12, -1, -0.35).normalize();
+      const rEPole = new THREE.Vector3( 0.12, -1, -0.35).normalize();
+
+      solveIK(LA.pivot, LA.upper, LA.fore, lGrip, lEPole, AL1, AL2);
+      solveIK(RA.pivot, RA.upper, RA.fore, rGrip, rEPole, AL1, AL2);
+
+      // ── 6. Snap bar to actual wrist world positions ──
+      snapBarToWrists();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  BENCH PRESS — Supine flat bench press
+    //
+    //  Key cues:
+    //    • Lying on back, chest facing up (world +Y)
+    //    • Slight lower-back arch; shoulder blades retracted + depressed
+    //    • Feet flat on floor, slight leg drive
+    //    • Bar from lower chest (~nipple line) to full lockout
+    //    • Elbows at ~75° from torso at bottom (not 90°)
+    //    • Bar travels in slight arc (down → slightly toward face)
+    // ═══════════════════════════════════════════════════════════════
+    function poseBench(t) {
+      // ── 1. Body: lying supine on bench ──
+      // hips.rotation.x = -PI/2 makes local +Z (chest) face world +Y (up)
+      hips.position.set(0, 0.49, -0.14);
+      hips.rotation.x = -Math.PI / 2 + 0.05;   // 0.05 = slight arch
+      torso.rotation.set(0, 0, 0);
+
+      // ── 2. Legs: bent at hip and knee, feet on floor ──
+      // With hips rotated -PI/2, neutral thigh direction is world +Z (toward cam)
+      // Rotate thigh forward (around X) to bring foot down to floor
+      [LL, RL].forEach(l => {
+        l.thigh.rotation.set( 1.55, 0, 0);   // swing foot toward floor
+        l.shin.rotation.set( -1.50, 0, 0);   // bend knee
+        l.ankle.rotation.set(-0.05, 0, 0);
+      });
+
+      scene.updateMatrixWorld(true);
+
+      // ── 3. Bar travels up from chest level to lockout ──
+      // With hips at y=0.49, rotation -PI/2, shoulders are in world at y≈0.49, z≈-0.68
+      // Bar is above the chest (world +Y direction)
+      const barY = lerp(0.58, 1.12, t);
+      // Slight arc: bar moves slightly toward head (−Z) as it rises
+      const barZ = lerp(-0.66, -0.70, t);
+
+      const BGRIP = 0.47;
+      const lGrip = new THREE.Vector3(-BGRIP, barY, barZ);
+      const rGrip = new THREE.Vector3( BGRIP, barY, barZ);
+
+      // Elbows: at bottom flare ~75° (outward), at top straight (above shoulder)
+      const elbY = lerp(-0.25, 0.30, t);
+      const lEPole = new THREE.Vector3(-1, elbY, 0.1).normalize();
+      const rEPole = new THREE.Vector3( 1, elbY, 0.1).normalize();
+
+      solveIK(LA.pivot, LA.upper, LA.fore, lGrip, lEPole, AL1, AL2);
+      solveIK(RA.pivot, RA.upper, RA.fore, rGrip, rEPole, AL1, AL2);
+
+      snapBarToWrists();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  DEADLIFT — Conventional deadlift
+    //
+    //  Key cues:
+    //    • Hip-width stance, bar over mid-foot
+    //    • Hip HINGE: torso leans forward heavily at start
+    //    • Arms hang STRAIGHT (vertical), just outside legs
+    //    • Bar skims shins; stays close to body throughout pull
+    //    • At lockout: hips through, knees straight, shoulders over/behind bar
+    //    • Slight knee bend at start reduces to straight at lockout
+    // ═══════════════════════════════════════════════════════════════
+    function poseDeadlift(t) {
+      // ── 1. Hip hinge: torso goes from deep forward lean to upright ──
+      const hipY = lerp(0.70, 0.92, t);
+      hips.position.set(0, hipY, 0);
+      hips.rotation.set(0, 0, 0);
+
+      const lean = lerp(0.82, 0.0, t);    // 0.82 rad ≈ 47° forward
+      torso.rotation.set(lean, 0, 0);
+
+      // ── 2. Legs: start bent, end straight ──
+      const thA = lerp(0.42, 0.0, t);
+      const knA = lerp(0.32, 0.0, t);
+      [LL, RL].forEach(l => {
+        l.thigh.rotation.set( thA, 0, 0);
+        l.shin.rotation.set( -thA + knA, 0, 0);
+        l.ankle.rotation.set(-knA * 0.35, 0, 0);
+      });
+
+      scene.updateMatrixWorld(true);
+
+      // ── 3. Bar rises from near-floor to hip height ──
+      // Arms hang nearly vertical → grip is directly below shoulders
+      const barY = lerp(0.225, hipY - 0.025, t);
+
+      // Grip just outside hips, shoulder-width, bar close to shins
+      const lGrip = new THREE.Vector3(-0.335, barY, 0.03);
+      const rGrip = new THREE.Vector3( 0.335, barY, 0.03);
+
+      // Elbows point straight back — arms hang like cables
+      const lEPole = new THREE.Vector3(-0.04, 0, -1).normalize();
+      const rEPole = new THREE.Vector3( 0.04, 0, -1).normalize();
+
+      solveIK(LA.pivot, LA.upper, LA.fore, lGrip, lEPole, AL1, AL2);
+      solveIK(RA.pivot, RA.upper, RA.fore, rGrip, rEPole, AL1, AL2);
+
+      snapBarToWrists();
+    }
+
+    // ── Animate ────────────────────────────────────────────────────
+    document.getElementById('loading').style.display = 'none';
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      ctrl.update();
+
+      const raw = (Math.sin(clock.getElapsedTime() * 1.4) + 1) * 0.5;
+      // Smoothstep: linger at top and bottom of movement
+      const t = raw * raw * (3 - 2 * raw);
+
+      if      (lift === 'squat')     poseSquat(t);
+      else if (lift === 'bench')     poseBench(t);
+      else                           poseDeadlift(t);
+
+      renderer.render(scene, cam);
+    }
+
+    window.addEventListener('resize', () => {
+      cam.aspect = innerWidth / innerHeight;
+      cam.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>

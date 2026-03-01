@@ -87,8 +87,10 @@ def _detect_closer_side(
     ratio_diff = (left_scale - right_scale) / max(left_scale, right_scale)
     ema_diff = (1 - _EMA_ALPHA) * ema_diff + _EMA_ALPHA * ratio_diff
 
+    # If both sides are visible and the difference is below the deadzone, 
+    # default to the side that was already being tracked if possible, or just pick one.
     if abs(ema_diff) < _RATIO_DEADZONE:
-        return None, ema_diff
+        return "left" if ema_diff >= 0 else "right", ema_diff
     elif ema_diff > 0:
         return "left", ema_diff
     else:
@@ -289,18 +291,24 @@ def _extract_squat(keypoints_seq: list[dict]) -> np.ndarray:
     rows: list[np.ndarray] = []
     ema_diff = 0.0
 
-    for kp in keypoints_seq:
+    for i, kp in enumerate(keypoints_seq):
         if kp is None:
+            log.warning("extract_squat: Frame %d has no keypoints", i)
             continue
 
         xy = kp["xy"]     # (17, 2)
         conf = kp["conf"]  # (17,)
 
         closest_side, ema_diff = _detect_closer_side(xy, conf, ema_diff)
+        if closest_side is None:
+            log.warning("extract_squat: Frame %d missing side detection. Diff=%s, Conf(Avg)=%.2f", i, ema_diff, float(np.mean(conf)))
+
         feats = squat_features_for_frame(xy, conf, closest_side)
 
         if feats is not None:
             rows.append(feats)
+        else:
+            log.warning("extract_squat: Frame %d failed feature extraction for side %s. Conf values: %s", i, closest_side, np.round(conf, 2))
 
     if not rows:
         return np.empty((0, 3), dtype=np.float32)

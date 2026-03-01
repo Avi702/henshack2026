@@ -1,0 +1,218 @@
+INFO:     Will watch for changes in these directories: ['/Users/avnee/henshack2026/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [95893] using StatReload
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/api_core/_python_version_support.py:246: FutureWarning: You are using a non-supported Python version (3.9.6). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/avnee/henshack2026/backend/app/gemini.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [95933]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+00:33:13  app.pipeline.analyze                  INFO   [89544a01b5d8] === START  lift=squat  file=1cd133d42c1d.mp4 ===
+00:33:13  app.pipeline.analyze                  INFO   [89544a01b5d8] saved upload → 89544a01b5d8.mp4 (12220432 bytes)
+00:33:15  app.pipeline.video_io                 INFO   sample_frames: 16/156 frames kept (step=10, target_fps=3.0, src_fps=30.1)
+00:33:15  app.pipeline.analyze                  INFO   [89544a01b5d8] sampled 16 frames @ 3.0 fps
+00:33:15  app.pipeline.analyze                  INFO   [89544a01b5d8] running YOLOv8 pose estimation …
+00:33:16  app.pipeline.pose                     INFO   No local model found — Ultralytics will auto-download yolov8n-pose.pt
+00:33:17  app.pipeline.pose                     INFO   extract_keypoints: 16/16 frames have a detected pose
+00:33:17  app.pipeline.analyze                  INFO   [89544a01b5d8] poses detected in 16 / 16 frames
+00:33:17  app.pipeline.analyze                  INFO   [89544a01b5d8] extracting squat features …
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 0 missing side detection. Diff=-0.010154839997326845, Conf(Avg)=0.93
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 0 failed feature extraction for side None. Conf values: [       0.98        0.97        0.84        0.94        0.35           1        0.98           1        0.89        0.99        0.87           1           1           1           1        0.99        0.98]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 1 missing side detection. Diff=-0.017341278072867967, Conf(Avg)=0.93
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 1 failed feature extraction for side None. Conf values: [       0.98        0.97        0.85        0.94        0.36           1        0.98           1        0.89        0.99        0.87           1           1           1           1        0.99        0.98]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 2 missing side detection. Diff=-0.02611366364811107, Conf(Avg)=0.93
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 2 failed feature extraction for side None. Conf values: [       0.98        0.97        0.85        0.94        0.37           1        0.98           1        0.88        0.99        0.86           1           1           1           1        0.99        0.98]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 3 missing side detection. Diff=-0.033325231059000475, Conf(Avg)=0.90
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 3 failed feature extraction for side None. Conf values: [       0.96        0.95        0.73        0.92        0.24           1        0.96        0.99        0.83        0.98        0.81           1           1           1        0.99        0.98        0.97]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 4 missing side detection. Diff=-0.040510478279766185, Conf(Avg)=0.90
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 4 failed feature extraction for side None. Conf values: [       0.97        0.97        0.66        0.97        0.17           1        0.98           1        0.86        0.99        0.86           1           1           1        0.99        0.99        0.97]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 5 missing side detection. Diff=-0.05476223938552332, Conf(Avg)=0.93
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 5 failed feature extraction for side None. Conf values: [       0.98        0.98        0.77        0.96        0.26           1        0.99           1        0.94        0.99        0.92           1           1           1           1        0.99        0.98]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 6 missing side detection. Diff=-0.05430253039138679, Conf(Avg)=0.92
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 6 failed feature extraction for side None. Conf values: [       0.97        0.97        0.78        0.94         0.3           1        0.99        0.99        0.95        0.98        0.92           1           1           1        0.99        0.98        0.97]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 7 missing side detection. Diff=-0.01638877791757239, Conf(Avg)=0.92
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 7 failed feature extraction for side None. Conf values: [       0.97        0.97        0.79        0.93        0.26           1        0.99        0.99        0.93        0.98        0.93        0.99        0.99        0.99        0.98        0.96        0.95]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 8 missing side detection. Diff=-0.028044542248358943, Conf(Avg)=0.91
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 8 failed feature extraction for side None. Conf values: [       0.96        0.97         0.7        0.95        0.23           1        0.98        0.99         0.9        0.98        0.86           1           1           1        0.99        0.99        0.98]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 9 missing side detection. Diff=-0.0268843577492362, Conf(Avg)=0.84
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 9 failed feature extraction for side None. Conf values: [       0.85        0.85        0.41        0.85        0.15        0.99        0.92        0.98        0.77        0.95        0.73           1        0.99        0.99        0.99        0.97        0.95]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 10 missing side detection. Diff=-0.030409222742119914, Conf(Avg)=0.89
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 10 failed feature extraction for side None. Conf values: [       0.94        0.92        0.75        0.84        0.32        0.99        0.95        0.98        0.79        0.96        0.75           1        0.99        0.99        0.99        0.97        0.95]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 11 missing side detection. Diff=-0.03561706073167141, Conf(Avg)=0.96
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 11 failed feature extraction for side None. Conf values: [       0.99        0.95        0.96        0.72        0.78           1           1        0.98        0.99        0.96        0.98           1           1           1           1        0.98        0.98]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 12 missing side detection. Diff=-0.04104514391295963, Conf(Avg)=0.94
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 12 failed feature extraction for side None. Conf values: [       0.97        0.93        0.89        0.76        0.59        0.99        0.99        0.99        0.98        0.98        0.97           1           1           1           1        0.97        0.97]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 13 missing side detection. Diff=-0.02451771131471813, Conf(Avg)=0.91
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 13 failed feature extraction for side None. Conf values: [       0.94        0.83        0.81         0.6        0.54        0.99        0.99        0.97        0.98        0.96        0.97           1           1        0.99           1        0.96        0.97]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 14 missing side detection. Diff=-0.00465690593667711, Conf(Avg)=0.85
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 14 failed feature extraction for side None. Conf values: [       0.83        0.54        0.52         0.4        0.33        0.98        0.99        0.98        0.98        0.98        0.98           1           1           1           1        0.96        0.97]
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 15 missing side detection. Diff=0.00987894741265595, Conf(Avg)=0.72
+00:33:17  app.pipeline.features                 WARNING  extract_squat: Frame 15 failed feature extraction for side None. Conf values: [       0.25        0.06        0.06        0.11        0.08        0.95        0.96        0.98        0.98        0.97        0.98           1           1           1           1        0.97        0.97]
+00:33:17  app.pipeline.analyze                  INFO   [89544a01b5d8] feature matrix shape: (0, 3)
+00:33:17  app.pipeline.expert_model             INFO   Loading expert model from /Users/avnee/henshack2026/squat_expert.pt
+00:33:17  app.pipeline.analyze                  INFO   [89544a01b5d8] no valid poses → skipping scoring
+00:33:17  app.pipeline.overlay                  INFO   annotate_frames: annotated 16 frames
+00:33:17  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:33:17  app.pipeline.analyze                  INFO   [89544a01b5d8] annotated video → 89544a01b5d8_annotated.mp4
+00:33:17  app.pipeline.analyze                  INFO   [89544a01b5d8] === DONE ===
+INFO:     127.0.0.1:63720 - "POST /analyze/video HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'app/pipeline/features.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [95933]
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/api_core/_python_version_support.py:246: FutureWarning: You are using a non-supported Python version (3.9.6). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/avnee/henshack2026/backend/app/gemini.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [96418]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+00:33:55  app.pipeline.analyze                  INFO   [5965db2ec2fc] === START  lift=squat  file=1cd133d42c1d.mp4 ===
+00:33:55  app.pipeline.analyze                  INFO   [5965db2ec2fc] saved upload → 5965db2ec2fc.mp4 (12220432 bytes)
+00:33:56  app.pipeline.video_io                 INFO   sample_frames: 16/156 frames kept (step=10, target_fps=3.0, src_fps=30.1)
+00:33:56  app.pipeline.analyze                  INFO   [5965db2ec2fc] sampled 16 frames @ 3.0 fps
+00:33:56  app.pipeline.analyze                  INFO   [5965db2ec2fc] running YOLOv8 pose estimation …
+00:33:57  app.pipeline.pose                     INFO   No local model found — Ultralytics will auto-download yolov8n-pose.pt
+00:33:58  app.pipeline.pose                     INFO   extract_keypoints: 16/16 frames have a detected pose
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] poses detected in 16 / 16 frames
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] extracting squat features …
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] feature matrix shape: (16, 3)
+00:33:58  app.pipeline.expert_model             INFO   Loading expert model from /Users/avnee/henshack2026/squat_expert.pt
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] running expert autoencoder inference …
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] phase-anchored: T_raw=16, hole=7 → (100, 3)
+00:33:58  app.pipeline.expert_model             INFO   compute_mse: mean=0.08930, max=0.26305 over 100 frames
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] mse_mean=0.08930
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] detected 3 issues
+00:33:58  app.pipeline.overlay                  INFO   annotate_frames: annotated 16 frames
+00:33:58  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] annotated video → 5965db2ec2fc_annotated.mp4
+00:33:58  app.pipeline.render                   INFO   render_comparison_video: 16 combined frames -> /Users/avnee/henshack2026/backend/app/artifacts/outputs/5965db2ec2fc_comparison.mp4
+00:33:58  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] comparison video → 5965db2ec2fc_comparison.mp4
+00:33:58  app.pipeline.analyze                  INFO   [5965db2ec2fc] === DONE ===
+INFO:     127.0.0.1:63769 - "POST /analyze/video HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'app/pipeline/features.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [96418]
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/api_core/_python_version_support.py:246: FutureWarning: You are using a non-supported Python version (3.9.6). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/avnee/henshack2026/backend/app/gemini.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [96823]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'app/pipeline/features.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [96823]
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/api_core/_python_version_support.py:246: FutureWarning: You are using a non-supported Python version (3.9.6). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/avnee/henshack2026/venv/lib/python3.9/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/avnee/henshack2026/backend/app/gemini.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [746]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+00:38:39  app.pipeline.analyze                  INFO   [324ae59933bd] === START  lift=squat  file=recording.mp4 ===
+00:38:39  app.pipeline.analyze                  INFO   [324ae59933bd] saved upload → 324ae59933bd.mp4 (12220432 bytes)
+00:38:39  app.pipeline.video_io                 INFO   sample_frames: 16/156 frames kept (step=10, target_fps=3.0, src_fps=30.1)
+00:38:39  app.pipeline.analyze                  INFO   [324ae59933bd] sampled 16 frames @ 3.0 fps
+00:38:39  app.pipeline.analyze                  INFO   [324ae59933bd] running YOLOv8 pose estimation …
+00:38:40  app.pipeline.pose                     INFO   No local model found — Ultralytics will auto-download yolov8n-pose.pt
+00:38:41  app.pipeline.pose                     INFO   extract_keypoints: 16/16 frames have a detected pose
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] poses detected in 16 / 16 frames
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] extracting squat features …
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] feature matrix shape: (16, 3)
+00:38:41  app.pipeline.expert_model             INFO   Loading expert model from /Users/avnee/henshack2026/squat_expert.pt
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] running expert autoencoder inference …
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] phase-anchored: T_raw=16, hole=7 → (100, 3)
+00:38:41  app.pipeline.expert_model             INFO   compute_mse: mean=0.08930, max=0.26305 over 100 frames
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] mse_mean=0.08930
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] detected 3 issues
+00:38:41  app.pipeline.overlay                  INFO   annotate_frames: annotated 16 frames
+00:38:41  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] annotated video → 324ae59933bd_annotated.mp4
+00:38:41  app.pipeline.render                   INFO   render_comparison_video: 16 combined frames -> /Users/avnee/henshack2026/backend/app/artifacts/outputs/324ae59933bd_comparison.mp4
+00:38:41  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] comparison video → 324ae59933bd_comparison.mp4
+00:38:41  app.pipeline.analyze                  INFO   [324ae59933bd] === DONE ===
+INFO:     127.0.0.1:63925 - "POST /analyze/video HTTP/1.1" 200 OK
+00:38:43  app.pipeline.analyze                  INFO   [154b1b295d0e] === START  lift=squat  file=recording.mp4 ===
+00:38:43  app.pipeline.analyze                  INFO   [154b1b295d0e] saved upload → 154b1b295d0e.mp4 (12220432 bytes)
+00:38:44  app.pipeline.video_io                 INFO   sample_frames: 16/156 frames kept (step=10, target_fps=3.0, src_fps=30.1)
+00:38:44  app.pipeline.analyze                  INFO   [154b1b295d0e] sampled 16 frames @ 3.0 fps
+00:38:44  app.pipeline.analyze                  INFO   [154b1b295d0e] running YOLOv8 pose estimation …
+00:38:45  app.pipeline.pose                     INFO   extract_keypoints: 16/16 frames have a detected pose
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] poses detected in 16 / 16 frames
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] extracting squat features …
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] feature matrix shape: (16, 3)
+00:38:45  app.pipeline.expert_model             INFO   Loading expert model from /Users/avnee/henshack2026/squat_expert.pt
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] running expert autoencoder inference …
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] phase-anchored: T_raw=16, hole=7 → (100, 3)
+00:38:45  app.pipeline.expert_model             INFO   compute_mse: mean=0.08930, max=0.26305 over 100 frames
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] mse_mean=0.08930
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] detected 3 issues
+00:38:45  app.pipeline.overlay                  INFO   annotate_frames: annotated 16 frames
+00:38:45  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] annotated video → 154b1b295d0e_annotated.mp4
+00:38:45  app.pipeline.render                   INFO   render_comparison_video: 16 combined frames -> /Users/avnee/henshack2026/backend/app/artifacts/outputs/154b1b295d0e_comparison.mp4
+00:38:45  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] comparison video → 154b1b295d0e_comparison.mp4
+00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] === DONE ===
+INFO:     127.0.0.1:63925 - "POST /analyze/video HTTP/1.1" 200 OK

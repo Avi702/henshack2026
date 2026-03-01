@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -22,8 +22,8 @@ class Issue(BaseModel):
 
 
 class Artifacts(BaseModel):
-    annotated_video_url: str | None = None
-    comparison_video_url: str | None = None
+    annotated_video_url: Optional[str] = None
+    comparison_video_url: Optional[str] = None
 
 
 class AIFeedback(BaseModel):
@@ -42,8 +42,8 @@ class DebugInfo(BaseModel):
 class AnalyzeResponse(BaseModel):
     lift_type: str
     overall: OverallVerdict = Field(default_factory=OverallVerdict)
-    score: float | None = None
-    mse_mean: float | None = None
+    score: Optional[float] = None
+    mse_mean: Optional[float] = None
     issues: list[Issue] = Field(default_factory=list)
     artifacts: Artifacts = Field(default_factory=Artifacts)
     ai_feedback: AIFeedback = Field(default_factory=AIFeedback)
@@ -53,8 +53,8 @@ class AnalyzeResponse(BaseModel):
 class CoachingRequest(BaseModel):
     lift_type: str
     overall_label: str = "unknown"
-    score: float | None = None
-    mse_mean: float | None = None
+    score: Optional[float] = None
+    mse_mean: Optional[float] = None
     issues: list[dict] = Field(default_factory=list)
     ai_feedback_summary: str = ""
     ai_feedback_bullets: list[str] = Field(default_factory=list)

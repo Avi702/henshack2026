@@ -30,7 +30,7 @@ export type AppStatus =
 
 export type InputMode = "record" | "upload";
 
-export type AppTab = "analyze" | "progress";
+export type AppTab = "home" | "learn" | "analyze" | "progress";
 
 export interface WorkoutEntry {
   id: string;

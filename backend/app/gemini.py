@@ -74,7 +74,7 @@ Keep your response concise, friendly, and practical. Use simple language a gym-g
 Do NOT use markdown headers — just write naturally with numbered tips. Keep the total response under 200 words."""
 
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-3-flash-preview")
         response = model.generate_content(prompt)
         return response.text or "Could not generate coaching advice."
     except Exception as e:
