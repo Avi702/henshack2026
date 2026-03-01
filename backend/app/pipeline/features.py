@@ -14,7 +14,12 @@ rather than midpoint averaging, so the features match training data.
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
+from scipy.interpolate import interp1d
+
+log = logging.getLogger(__name__)
 
 # ── keypoint index shortcuts ────────────────────────────────
 _R_SHOULDER, _L_SHOULDER = 5, 6
@@ -197,6 +202,86 @@ def extract(lift_type: str, keypoints_seq: list[dict]) -> np.ndarray:
     if not rows:
         return np.empty((0, 3), dtype=np.float32)
     return np.stack(rows)
+
+
+# ── inference preprocessing (match training pipeline) ────────
+
+def _interpolate_nans(features: np.ndarray) -> np.ndarray:
+    """Replace NaN values in each column via linear interpolation."""
+    out = features.copy()
+    for col in range(out.shape[1]):
+        data = out[:, col]
+        nans = np.isnan(data)
+        if nans.all():
+            data[:] = 0.0
+        elif nans.any():
+            valid = np.where(~nans)[0]
+            data[nans] = np.interp(np.where(nans)[0], valid, data[valid])
+    return out
+
+
+def phase_anchor_for_inference(
+    features: np.ndarray,
+    total_frames: int = 100,
+) -> tuple[np.ndarray, int]:
+    """Interpolate NaNs and phase-anchor to *total_frames* (hole at midpoint).
+
+    Returns (anchored_features, hole_idx_in_raw).
+    """
+    clean = _interpolate_nans(features)
+    T = clean.shape[0]
+
+    hole_idx = int(np.argmin(clean[:, 0]))
+    if hole_idx < 5 or hole_idx > T - 5:
+        log.warning("phase_anchor: hole_idx=%d unreliable (T=%d), falling back to T//2", hole_idx, T)
+        hole_idx = T // 2
+
+    half = total_frames // 2
+    descent = clean[: hole_idx + 1, :]
+    ascent = clean[hole_idx:, :]
+
+    t_desc = np.linspace(0, 1, len(descent))
+    t_asc = np.linspace(0, 1, len(ascent))
+    t_target = np.linspace(0, 1, half)
+
+    anchored_desc = interp1d(t_desc, descent, axis=0, kind="linear")(t_target)
+    anchored_asc = interp1d(t_asc, ascent, axis=0, kind="linear")(t_target)
+
+    anchored = np.vstack((anchored_desc, anchored_asc)).astype(np.float32)
+    return anchored, hole_idx
+
+
+def map_mse_to_original(
+    mse_anchored: np.ndarray,
+    T_raw: int,
+    hole_idx: int,
+    total_frames: int = 100,
+) -> np.ndarray:
+    """Map phase-anchored MSE back to the original frame count.
+
+    Works for both per_frame (100,) and per_feature (100, F) arrays.
+    """
+    half = total_frames // 2
+
+    # For each raw frame, compute its position in the anchored sequence
+    raw_positions = np.zeros(T_raw)
+    for i in range(T_raw):
+        if i <= hole_idx:
+            raw_positions[i] = i / max(hole_idx, 1) * (half - 1)
+        else:
+            remaining = max(T_raw - 1 - hole_idx, 1)
+            raw_positions[i] = half + (i - hole_idx) / remaining * (half - 1)
+
+    anchored_idx = np.arange(total_frames, dtype=np.float64)
+
+    if mse_anchored.ndim == 1:
+        return np.interp(raw_positions, anchored_idx, mse_anchored)
+
+    # Per-feature: (100, F) → (T_raw, F)
+    result = np.zeros((T_raw, mse_anchored.shape[1]))
+    for f in range(mse_anchored.shape[1]):
+        result[:, f] = np.interp(raw_positions, anchored_idx, mse_anchored[:, f])
+    return result
 
 
 def _extract_squat(keypoints_seq: list[dict]) -> np.ndarray:

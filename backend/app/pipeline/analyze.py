@@ -26,7 +26,7 @@ from ..schemas import (
 )
 from . import video_io, overlay, render
 from .pose import extract_keypoints
-from .features import extract as extract_features
+from .features import extract as extract_features, phase_anchor_for_inference, map_mse_to_original
 from .expert_model import load_expert, compute_mse
 from .feedback import detect_issues, generate_feedback
 
@@ -100,10 +100,26 @@ def run(
     per_frame_mse: np.ndarray | None = None
     per_feature_mse: np.ndarray | None = None
     reconstruction: np.ndarray | None = None
+    features_anchored: np.ndarray | None = None
 
     if model is not None and features.shape[0] > 0:
         log.info("[%s] running expert autoencoder inference …", run_id)
-        mse_mean, per_frame_mse, per_feature_mse, reconstruction = compute_mse(model, features)
+        T_raw = features.shape[0]
+
+        # Phase-anchor to 100 frames to match training data
+        if lift_type == "squat" and T_raw >= 10:
+            features_anchored, hole_idx = phase_anchor_for_inference(features, total_frames=100)
+            log.info("[%s] phase-anchored: T_raw=%d, hole=%d → (100, %d)", run_id, T_raw, hole_idx, features_anchored.shape[1])
+
+            mse_mean, pf_mse_100, pfeat_mse_100, recon_100 = compute_mse(model, features_anchored)
+
+            # Map 100-frame MSE back to original frame count for overlay
+            per_frame_mse = map_mse_to_original(pf_mse_100, T_raw, hole_idx)
+            per_feature_mse = map_mse_to_original(pfeat_mse_100, T_raw, hole_idx)
+            reconstruction = map_mse_to_original(recon_100, T_raw, hole_idx)
+        else:
+            mse_mean, per_frame_mse, per_feature_mse, reconstruction = compute_mse(model, features)
+
         log.info("[%s] mse_mean=%.5f", run_id, mse_mean)
     elif model is None:
         log.info("[%s] no expert model found — skipping scoring", run_id)
@@ -150,10 +166,13 @@ def run(
         # Comparison video only when expert model was available
         if reconstruction is not None and per_frame_mse is not None:
             cmp_name = f"{run_id}_comparison.mp4"
+            # Use anchored data for chart if available (aligned X vs X_hat)
+            chart_x = features_anchored if features_anchored is not None else features
+            chart_xhat = recon_100 if features_anchored is not None else reconstruction
             render.render_comparison_video(
                 frames, keypoints,
-                x_values=features,
-                x_hat_values=reconstruction,
+                x_values=chart_x,
+                x_hat_values=chart_xhat,
                 per_frame_mse=per_frame_mse,
                 per_feature_mse=per_feature_mse,
                 lift_type=lift_type,
