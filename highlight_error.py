@@ -146,7 +146,7 @@ def draw_angles(
         else:
             color = (255, 255, 255)
 
-        text = f"{name}:{ang:.0f}°" if show_label else f"{ang:.0f}°"
+        text = f"{name}:{ang:.0f}deg" if show_label else f"{ang:.0f}deg"
         cv2.putText(
             frame,
             text,
