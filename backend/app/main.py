@@ -26,7 +26,7 @@ app = FastAPI(title="SquatBuddy API", version="0.2.0")
 # ── CORS ────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3002", "http://127.0.0.1:3002", "*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

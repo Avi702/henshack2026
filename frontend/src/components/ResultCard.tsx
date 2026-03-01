@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { AnalysisResult } from "@/types/api";
 import VideoPlayer from "./VideoPlayer";
-import GeminiCoach from "./GeminiCoach";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -47,7 +46,7 @@ export default function ResultCard({ result }: { result: AnalysisResult }) {
   return (
     <div className="space-y-5 animate-slide-up">
       {/* Overall verdict */}
-      <div className={`rounded-2xl border bg-gradient-to-br ${style.bg} p-6`}>
+      <div className={`rounded-2xl border bg-linear-to-br ${style.bg} p-6`}>
         <div className="flex items-center gap-4">
           <div
             className={`flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-bold ${style.text} bg-black/20`}
@@ -99,8 +98,7 @@ export default function ResultCard({ result }: { result: AnalysisResult }) {
       </div>
 
       {/* Videos */}
-      {(result.artifacts.annotated_video_url ||
-        result.artifacts.comparison_video_url) && (
+      {(result.artifacts.annotated_video_url) && (
         <div className="rounded-2xl border border-card-border bg-card p-6">
           <h3 className="mb-4 text-lg font-semibold">Form Analysis Video</h3>
           <div className="space-y-4">
@@ -110,18 +108,9 @@ export default function ResultCard({ result }: { result: AnalysisResult }) {
                 label="Annotated Skeleton Overlay"
               />
             )}
-            {result.artifacts.comparison_video_url && (
-              <VideoPlayer
-                src={artifactUrl(result.artifacts.comparison_video_url)!}
-                label="Expert Comparison"
-              />
-            )}
           </div>
         </div>
       )}
-
-      {/* AI Coaching (Gemini) */}
-      <GeminiCoach result={result} />
 
       {/* Built-in feedback */}
       {result.ai_feedback && (
