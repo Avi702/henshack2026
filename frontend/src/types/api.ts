@@ -29,3 +29,14 @@ export type AppStatus =
   | "error";
 
 export type InputMode = "record" | "upload";
+
+export type AppTab = "analyze" | "progress";
+
+export interface WorkoutEntry {
+  id: string;
+  date: string;
+  liftType: LiftType;
+  weight: number;
+  reps: number;
+  unit: "lbs" | "kg";
+}

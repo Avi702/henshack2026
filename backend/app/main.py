@@ -1,4 +1,4 @@
-"""HenShack 2026 — FastAPI backend for lift form analysis."""
+"""SquatBuddy — FastAPI backend for lift form analysis."""
 
 from __future__ import annotations
 
@@ -10,8 +10,9 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from .schemas import AnalyzeResponse
+from .schemas import AnalyzeResponse, CoachingRequest, CoachingResponse
 from .pipeline import analyze
+from .gemini import get_coaching
 
 # Configure logging so pipeline modules emit to stdout
 logging.basicConfig(
@@ -20,7 +21,7 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 
-app = FastAPI(title="HenShack Lift Analyzer", version="0.1.0")
+app = FastAPI(title="SquatBuddy API", version="0.2.0")
 
 # ── CORS ────────────────────────────────────────────────────
 app.add_middleware(
@@ -39,8 +40,8 @@ _ALLOWED_EXTENSIONS = {".mp4", ".mov", ".webm"}
 @app.get("/")
 def root():
     return {
-        "message": "HenShack backend running",
-        "try": ["/health", "POST /analyze/video", "/docs"]
+        "message": "SquatBuddy backend running",
+        "try": ["/health", "POST /analyze/video", "POST /coaching", "/docs"],
     }
 
 @app.get("/health")
@@ -54,7 +55,6 @@ async def analyze_video(
     lift_type: Literal["squat", "bench", "deadlift"] = Form(...),
     return_artifacts: bool = Form(True),
 ):
-    # Validate extension
     suffix = Path(file.filename or "video.mp4").suffix.lower()
     if suffix not in _ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -73,6 +73,20 @@ async def analyze_video(
         return_artifacts=return_artifacts,
     )
     return result
+
+
+@app.post("/coaching", response_model=CoachingResponse)
+def coaching(req: CoachingRequest):
+    text = get_coaching(
+        lift_type=req.lift_type,
+        overall_label=req.overall_label,
+        score=req.score,
+        mse_mean=req.mse_mean,
+        issues=[iss for iss in req.issues],
+        ai_feedback_summary=req.ai_feedback_summary,
+        ai_feedback_bullets=req.ai_feedback_bullets,
+    )
+    return CoachingResponse(coaching=text)
 
 
 @app.get("/artifacts/{filename:path}")

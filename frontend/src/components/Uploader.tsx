@@ -40,11 +40,12 @@ const Uploader = forwardRef<UploaderHandle, UploaderProps>(function Uploader(
     setError(null);
 
     if (f.size > MAX_SIZE_BYTES) {
-      setError(`File too large (${(f.size / 1024 / 1024).toFixed(1)} MB). Max is ${MAX_SIZE_MB} MB.`);
+      setError(
+        `File too large (${(f.size / 1024 / 1024).toFixed(1)} MB). Max is ${MAX_SIZE_MB} MB.`
+      );
       return;
     }
 
-    // Validate duration via hidden video element
     const url = URL.createObjectURL(f);
     const vid = document.createElement("video");
     vid.preload = "metadata";
@@ -62,7 +63,6 @@ const Uploader = forwardRef<UploaderHandle, UploaderProps>(function Uploader(
       onClipChange?.(true);
     };
     vid.onerror = () => {
-      // Can't read metadata — accept file anyway (server will validate)
       setFile(f);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(url);
@@ -92,10 +92,10 @@ const Uploader = forwardRef<UploaderHandle, UploaderProps>(function Uploader(
           const f = e.dataTransfer.files?.[0];
           if (f) handleFile(f);
         }}
-        className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-700 bg-slate-800/40 p-10 text-center transition-colors hover:border-blue-600/50 hover:bg-slate-800/60"
+        className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-700 bg-zinc-800/30 p-10 text-center transition-all hover:border-accent/40 hover:bg-zinc-800/50"
       >
         <svg
-          className="mb-3 h-10 w-10 text-slate-500"
+          className="mb-3 h-10 w-10 text-zinc-600"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -107,10 +107,11 @@ const Uploader = forwardRef<UploaderHandle, UploaderProps>(function Uploader(
             d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
           />
         </svg>
-        <p className="text-sm text-slate-400">
-          Drag & drop or <span className="text-blue-400 underline">browse</span>
+        <p className="text-sm text-zinc-400">
+          Drag & drop or{" "}
+          <span className="text-accent font-medium">browse</span>
         </p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-zinc-600">
           MP4, MOV, or WebM &middot; Max {MAX_SIZE_MB} MB &middot; Max{" "}
           {MAX_DURATION}s
         </p>
@@ -127,7 +128,7 @@ const Uploader = forwardRef<UploaderHandle, UploaderProps>(function Uploader(
       </label>
 
       {error && (
-        <div className="rounded-lg bg-red-900/30 p-3 text-sm text-red-300">
+        <div className="rounded-xl bg-red-900/20 border border-red-800/30 p-3 text-sm text-red-300">
           {error}
         </div>
       )}
@@ -141,7 +142,7 @@ const Uploader = forwardRef<UploaderHandle, UploaderProps>(function Uploader(
             src={previewUrl}
           />
           <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">{file?.name}</p>
+            <p className="text-xs text-zinc-500">{file?.name}</p>
             <button
               onClick={() => {
                 setFile(null);
@@ -150,7 +151,7 @@ const Uploader = forwardRef<UploaderHandle, UploaderProps>(function Uploader(
                 if (inputRef.current) inputRef.current.value = "";
                 onClipChange?.(false);
               }}
-              className="text-xs text-slate-500 hover:text-slate-300"
+              className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
             >
               Remove
             </button>

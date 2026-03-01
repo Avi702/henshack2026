@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HenShack — Lift Form Analyzer",
+  title: "SquatBuddy — AI Lift Form Coach",
   description:
     "AI-powered weightlifting form analysis using pose estimation and deep learning",
 };

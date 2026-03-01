@@ -6,19 +6,19 @@ const CONFIG: Record<
   AppStatus,
   { label: string; color: string; animate?: boolean }
 > = {
-  idle: { label: "Ready", color: "bg-slate-700 text-slate-300" },
+  idle: { label: "Ready", color: "bg-zinc-800 text-zinc-400" },
   uploading: {
-    label: "Uploading…",
-    color: "bg-blue-900/60 text-blue-300",
+    label: "Uploading",
+    color: "bg-orange-900/40 text-orange-300",
     animate: true,
   },
   analyzing: {
-    label: "Analyzing…",
-    color: "bg-indigo-900/60 text-indigo-300",
+    label: "Analyzing",
+    color: "bg-amber-900/40 text-amber-300",
     animate: true,
   },
-  done: { label: "Complete", color: "bg-green-900/60 text-green-300" },
-  error: { label: "Error", color: "bg-red-900/60 text-red-300" },
+  done: { label: "Complete", color: "bg-emerald-900/40 text-emerald-300" },
+  error: { label: "Error", color: "bg-red-900/40 text-red-300" },
 };
 
 export default function StatusPill({ status }: { status: AppStatus }) {

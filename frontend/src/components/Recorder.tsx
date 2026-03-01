@@ -43,7 +43,6 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
   const [blob, setBlob] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Start camera
   useEffect(() => {
     let cancelled = false;
     async function init() {
@@ -76,7 +75,6 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
     };
   }, []);
 
-  // Cleanup preview URL
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -96,7 +94,6 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
       return;
     }
 
-    // Reset previous
     setBlob(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
@@ -144,7 +141,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
         setRecording(false);
       }
     }, 1000);
-  }, [previewUrl]);
+  }, [previewUrl, onClipChange]);
 
   useImperativeHandle(ref, () => ({
     getBlob: () => blob,
@@ -159,7 +156,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
 
   if (cameraError) {
     return (
-      <div className="rounded-xl bg-red-900/30 p-4 text-sm text-red-300">
+      <div className="rounded-xl bg-red-900/20 border border-red-800/30 p-4 text-sm text-red-300">
         {cameraError}
       </div>
     );
@@ -167,7 +164,6 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
 
   return (
     <div className="space-y-4">
-      {/* Live preview or recorded preview */}
       <div className="relative overflow-hidden rounded-xl bg-black">
         {!previewUrl ? (
           <>
@@ -179,12 +175,12 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
               className="w-full -scale-x-100"
             />
             {!cameraReady && (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
-                Starting camera…
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-zinc-500">
+                Starting camera...
               </div>
             )}
             {recording && (
-              <div className="absolute top-3 right-3 flex items-center gap-2 rounded-full bg-red-600/90 px-3 py-1 text-xs font-bold text-white">
+              <div className="absolute top-3 right-3 flex items-center gap-2 rounded-full bg-red-600/90 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
                 <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-white" />
                 {formatTime(elapsed)} / {formatTime(MAX_SECONDS)}
               </div>
@@ -200,13 +196,12 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
         )}
       </div>
 
-      {/* Controls */}
       <div className="flex gap-3">
         {!recording && !previewUrl && (
           <button
             disabled={!cameraReady}
             onClick={startRecording}
-            className="flex-1 rounded-xl bg-red-600 py-3.5 text-base font-bold text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex-1 rounded-xl bg-red-600 py-3.5 text-sm font-bold text-white transition-all hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Start Recording
           </button>
@@ -214,7 +209,7 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
         {recording && (
           <button
             onClick={stopRecording}
-            className="flex-1 rounded-xl bg-slate-700 py-3.5 text-base font-bold text-white transition-colors hover:bg-slate-600"
+            className="flex-1 rounded-xl bg-zinc-700 py-3.5 text-sm font-bold text-white transition-all hover:bg-zinc-600"
           >
             Stop Recording
           </button>
@@ -228,14 +223,14 @@ const Recorder = forwardRef<RecorderHandle, RecorderProps>(function Recorder(
               setElapsed(0);
               onClipChange?.(false);
             }}
-            className="rounded-xl border border-slate-700 px-5 py-3.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800"
+            className="rounded-xl border border-zinc-700 px-5 py-3.5 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
           >
             Re-record
           </button>
         )}
       </div>
 
-      <p className="text-center text-xs text-slate-500">
+      <p className="text-center text-xs text-zinc-600">
         Max {MAX_SECONDS}s &middot; No audio captured
       </p>
     </div>

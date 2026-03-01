@@ -8,11 +8,11 @@ interface Props {
 export default function VideoPlayer({ src, label }: Props) {
   return (
     <div>
-      <p className="mb-1.5 text-sm font-medium text-slate-400">{label}</p>
+      <p className="mb-2 text-sm font-medium text-zinc-400">{label}</p>
       <video
         controls
         playsInline
-        className="w-full rounded-lg bg-black"
+        className="w-full rounded-xl bg-black"
         src={src}
       />
     </div>
