@@ -11,16 +11,19 @@
 # FIX: Bone colors now use MAX(endpoint joints) instead of average, so torso (shoulder->hip) lines actually change color
 # when hip error is high even if shoulder error is 0.
 #
+# NEW: Optional joint-angle overlay via --show-angles (hips + knees by default).
+#
 # Example run (Git Bash):
 #   python3 highlight_error.py \
 #     --mp4 /c/Users/ryuy1/henshack2026/WIN_20260228_14_32_19_Pro.mp4 \
 #     --err /c/Users/ryuy1/henshack2026/0_error.npy \
 #     --side /c/Users/ryuy1/henshack2026/side.npy \
 #     --use-yolo --flip-selfie \
+#     --show-angles \
 #     --out /c/Users/ryuy1/henshack2026/overlay_test.mp4
 #
 # Example run (PowerShell/CMD):
-#   py highlight_error.py --mp4 "C:\Users\ryuy1\henshack2026\WIN_20260228_14_32_19_Pro.mp4" --err "C:\Users\ryuy1\henshack2026\0_error.npy" --side "C:\Users\ryuy1\henshack2026\side.npy" --use-yolo --flip-selfie --out "C:\Users\ryuy1\henshack2026\overlay_test.mp4"
+#   py highlight_error.py --mp4 "C:\Users\ryuy1\henshack2026\WIN_20260228_14_32_19_Pro.mp4" --err "C:\Users\ryuy1\henshack2026\0_error.npy" --side "C:\Users\ryuy1\henshack2026\side.npy" --use-yolo --flip-selfie --show-angles --out "C:\Users\ryuy1\henshack2026\overlay_test.mp4"
 
 import argparse
 import os
@@ -46,8 +49,18 @@ EDGES = [
 ]
 
 # Joint indices (COCO/YOLOv8)
+L_SHOULDER, R_SHOULDER = 5, 6
 L_HIP, R_HIP = 11, 12
 L_KNEE, R_KNEE = 13, 14
+L_ANKLE, R_ANKLE = 15, 16
+
+# Default angles to show: hips + knees
+ANGLE_TRIPLETS_DEFAULT = [
+    ("L_HIP",  (L_SHOULDER, L_HIP,  L_KNEE)),
+    ("R_HIP",  (R_SHOULDER, R_HIP,  R_KNEE)),
+    ("L_KNEE", (L_HIP,      L_KNEE, L_ANKLE)),
+    ("R_KNEE", (R_HIP,      R_KNEE, R_ANKLE)),
+]
 
 # ---------------- Utility ----------------
 def safe_norm(v, axis=-1):
@@ -79,6 +92,72 @@ def color_from_value_u8(v_u8, colormap=cv2.COLORMAP_TURBO):
     arr = np.array([[v_u8]], dtype=np.uint8)
     c = cv2.applyColorMap(arr, colormap)[0, 0]  # BGR
     return int(c[0]), int(c[1]), int(c[2])
+
+def angle_deg(a, b, c, eps=1e-6):
+    """
+    Compute angle ABC (in degrees) where b is the vertex.
+    Returns NaN if degenerate/invalid.
+    """
+    v1 = a - b
+    v2 = c - b
+    n1 = float(np.linalg.norm(v1))
+    n2 = float(np.linalg.norm(v2))
+    if not (np.isfinite(n1) and np.isfinite(n2)) or n1 < eps or n2 < eps:
+        return np.nan
+    cosang = float(np.dot(v1, v2) / (n1 * n2))
+    cosang = max(-1.0, min(1.0, cosang))
+    return float(np.degrees(np.arccos(cosang)))
+
+def draw_angles(
+    frame,
+    kpts_xy,        # (17,2)
+    kpts_cf,        # (17,)
+    angle_triplets,
+    conf_thres=0.5,
+    joint_u8=None,          # (17,) optional: color text by joint error intensity at vertex
+    font_scale=0.6,
+    thickness=2,
+    offset=(8, -8),
+    show_label=True
+):
+    """
+    Draw angle text near the vertex joint for each triplet.
+    """
+    ox, oy = offset
+    for name, (ia, ib, ic) in angle_triplets:
+        if kpts_cf[ia] < conf_thres or kpts_cf[ib] < conf_thres or kpts_cf[ic] < conf_thres:
+            continue
+
+        a = kpts_xy[ia]
+        b = kpts_xy[ib]
+        c = kpts_xy[ic]
+        if not (np.all(np.isfinite(a)) and np.all(np.isfinite(b)) and np.all(np.isfinite(c))):
+            continue
+
+        ang = angle_deg(a, b, c)
+        if not np.isfinite(ang):
+            continue
+
+        x, y = int(b[0]), int(b[1])
+
+        # Color: if joint_u8 available, use vertex intensity color; else white
+        if joint_u8 is not None and ib < len(joint_u8):
+            color = color_from_value_u8(int(joint_u8[ib]))
+        else:
+            color = (255, 255, 255)
+
+        text = f"{name}:{ang:.0f}°" if show_label else f"{ang:.0f}°"
+        cv2.putText(
+            frame,
+            text,
+            (x + ox, y + oy),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            font_scale,
+            color,
+            thickness,
+            cv2.LINE_AA
+        )
+    return frame
 
 def draw_skeleton_heat(
     frame,
@@ -218,6 +297,12 @@ def main():
     ap.add_argument("--joint-radius", type=int, default=5)
     ap.add_argument("--line-thickness", type=int, default=4)
 
+    # NEW: angles
+    ap.add_argument("--show-angles", action="store_true", help="Draw joint angles (deg) at hips/knees")
+    ap.add_argument("--angle-font-scale", type=float, default=0.6, help="Angle label font scale")
+    ap.add_argument("--angle-thickness", type=int, default=2, help="Angle label thickness")
+    ap.add_argument("--angle-labels", action="store_true", help="Show labels like L_KNEE:120° instead of just 120°")
+
     args = ap.parse_args()
 
     if not args.draw_joints and not args.draw_bones:
@@ -352,7 +437,7 @@ def main():
             bone_u8, _ = normalize_err(err_scalar[frame_idx], clip_max)
             joint_u8 = None
 
-        # Draw
+        # Draw skeleton heatmap
         frame = draw_skeleton_heat(
             frame,
             kpts_xy=kpts_xy,
@@ -366,6 +451,21 @@ def main():
             draw_bones=args.draw_bones,
             show_values=args.show_values
         )
+
+        # NEW: Draw angles (hips/knees)
+        if args.show_angles:
+            frame = draw_angles(
+                frame,
+                kpts_xy=kpts_xy,
+                kpts_cf=kpts_cf,
+                angle_triplets=ANGLE_TRIPLETS_DEFAULT,
+                conf_thres=args.conf_thres,
+                joint_u8=joint_u8,  # color angle text by vertex joint error if available
+                font_scale=args.angle_font_scale,
+                thickness=args.angle_thickness,
+                offset=(8, -8),
+                show_label=args.angle_labels
+            )
 
         # Legend
         cv2.putText(
