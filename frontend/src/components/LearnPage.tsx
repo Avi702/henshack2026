@@ -61,9 +61,10 @@ const LIFT_INFO: Record<LiftType, { title: string, desc: string, steps: string[]
 
 export default function LearnPage() {
   const [activeLift, setActiveLift] = useState<LiftType>("squat");
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-page-enter max-w-5xl mx-auto w-full relative pb-20">
       <div className="text-center py-4">
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
           Form <span className="gradient-text">Library</span>
@@ -73,8 +74,9 @@ export default function LearnPage() {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-6">
-        <div className="space-y-6">
+      <div className="flex flex-col gap-6 w-full transition-all duration-500">
+        {/* Main Content: 3D Animation & Lift Information */}
+        <div className="w-full space-y-6 min-w-0">
           {/* 3D Scene Viewer */}
           <div className="relative w-full h-64 sm:h-96 rounded-3xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 shadow-inner transition-colors">
             <div className="absolute inset-0 z-0">
@@ -107,14 +109,14 @@ export default function LearnPage() {
           </div>
 
           {/* Content Card */}
-          <div className="rounded-3xl border border-card-border bg-card p-6 sm:p-8 animate-fade-in shadow-xl shadow-black/50">
+          <div className="rounded-3xl border border-card-border bg-card p-6 sm:p-8 shadow-xl shadow-black/50 overflow-hidden">
             <h2 className="text-2xl font-black mb-3">{LIFT_INFO[activeLift].title}</h2>
-            <p className="text-zinc-400 mb-8 leading-relaxed">
+            <p className="text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed text-base sm:text-lg">
               {LIFT_INFO[activeLift].desc}
             </p>
 
             <div className="grid md:grid-cols-2 gap-8">
-              <div>
+              <div className="h-full">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="p-1.5 bg-accent/20 text-accent rounded-lg">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -142,9 +144,9 @@ export default function LearnPage() {
                 </ul>
               </div>
 
-              <div className="bg-red-950/10 border border-red-900/20 rounded-2xl p-5">
+              <div className="bg-red-950/5 dark:bg-red-950/10 border border-red-900/10 dark:border-red-900/20 rounded-2xl p-5 h-full">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="p-1.5 bg-red-500/20 text-red-400 rounded-lg">
+                  <div className="p-1.5 bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -168,9 +170,41 @@ export default function LearnPage() {
           </div>
         </div>
 
-        {/* AI Chatbot Column */}
-        <div className="h-150 lg:h-auto lg:min-h-full">
-          <AiCoach />
+        {/* Floating AI Chatbot Button & Panel */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+          {/* Chatbot Panel */}
+          <div className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            isChatOpen ? "h-[500px] w-[350px] sm:w-[400px] opacity-100 mb-4" : "h-0 w-0 opacity-0 pointer-events-none"
+          }`}>
+            <div className="h-full w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-2xl bg-card overflow-hidden">
+              <AiCoach />
+            </div>
+          </div>
+
+          {/* Floating Toggle Button */}
+          <div className="flex items-center gap-3">
+            {!isChatOpen && (
+              <div className="bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-sm py-2 px-4 rounded-full shadow-lg border border-zinc-200 dark:border-zinc-700 animate-bounce origin-right hidden sm:block">
+                Ask our AI Coach for help!
+                <div className="absolute top-1/2 right-[-6px] -translate-y-1/2 w-3 h-3 bg-white dark:bg-zinc-800 border-r border-t border-zinc-200 dark:border-zinc-700 rotate-45"></div>
+              </div>
+            )}
+            
+            <button
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              className="h-14 w-14 rounded-full bg-accent text-white shadow-xl shadow-accent/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+            >
+              {isChatOpen ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

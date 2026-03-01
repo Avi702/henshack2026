@@ -4,16 +4,16 @@ import type { AppTab } from "@/types/api";
 
 export default function HomePage({ onNavigate }: { onNavigate: (tab: AppTab) => void }) {
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 animate-page-enter">
       {/* Hero Section */}
       <section className="text-center py-12">
-        <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl mb-4">
+        <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl mb-4 animate-slide-up stagger-1 opacity-0">
           Unleash Your <span className="gradient-text">Potential</span>
         </h1>
-        <p className="mx-auto max-w-lg text-lg text-zinc-400">
+        <p className="mx-auto max-w-lg text-lg text-zinc-400 animate-slide-up stagger-2 opacity-0">
           Perfect your form, lift heavier, and avoid injuries with AI-driven real-time analysis for Squats, Bench, and Deadlifts.
         </p>
-        <div className="mt-8 flex justify-center gap-4">
+        <div className="mt-8 flex justify-center gap-4 animate-slide-up stagger-3 opacity-0">
           <button
             onClick={() => onNavigate("analyze")}
             className="rounded-full bg-accent px-8 py-4 text-base font-bold text-white shadow-lg shadow-accent/20 transition-all hover:bg-orange-500 hover:scale-105 hover:shadow-accent/40"
@@ -30,8 +30,9 @@ export default function HomePage({ onNavigate }: { onNavigate: (tab: AppTab) => 
       </section>
 
       {/* Features Grid */}
-      <section className="grid gap-6 sm:grid-cols-2">
-        <div className="rounded-3xl border border-card-border bg-card p-6 transition-all hover:border-zinc-600 hover:bg-zinc-800/80">
+      <section className="grid gap-6 sm:grid-cols-2 animate-slide-up stagger-3 opacity-0">
+        <div className="rounded-3xl border border-card-border bg-card p-6 transition-all hover:border-zi
+c-600 hover:bg-zinc-800/80">
           <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -54,15 +55,7 @@ export default function HomePage({ onNavigate }: { onNavigate: (tab: AppTab) => 
             Keep a log of your working sets, reps, and weights. Monitor your volume and intensity over time with integrated tracking charts.
           </p>
         </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="rounded-3xl border border-card-border bg-gradient-to-b from-zinc-800/40 to-transparent p-8 text-center">
-        <blockquote className="mx-auto max-w-xl text-lg italic text-zinc-300">
-          "This app completely transformed my squat! Being able to see exactly where my depth was off has helped me add 50lbs to my PR without any knee pain."
-        </blockquote>
-        <p className="mt-4 text-sm font-bold text-accent">— Alex P, Powerlifter</p>
-      </section>
+      </section> 
     </div>
   );
 }

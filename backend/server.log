@@ -216,3 +216,26 @@ INFO:     127.0.0.1:63925 - "POST /analyze/video HTTP/1.1" 200 OK
 00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] comparison video → 154b1b295d0e_comparison.mp4
 00:38:45  app.pipeline.analyze                  INFO   [154b1b295d0e] === DONE ===
 INFO:     127.0.0.1:63925 - "POST /analyze/video HTTP/1.1" 200 OK
+00:52:42  app.pipeline.analyze                  INFO   [8378d8994728] === START  lift=squat  file=recording.mp4 ===
+00:52:42  app.pipeline.analyze                  INFO   [8378d8994728] saved upload → 8378d8994728.mp4 (12220432 bytes)
+00:52:43  app.pipeline.video_io                 INFO   sample_frames: 16/156 frames kept (step=10, target_fps=3.0, src_fps=30.1)
+00:52:43  app.pipeline.analyze                  INFO   [8378d8994728] sampled 16 frames @ 3.0 fps
+00:52:43  app.pipeline.analyze                  INFO   [8378d8994728] running YOLOv8 pose estimation …
+00:52:44  app.pipeline.pose                     INFO   extract_keypoints: 16/16 frames have a detected pose
+00:52:44  app.pipeline.analyze                  INFO   [8378d8994728] poses detected in 16 / 16 frames
+00:52:44  app.pipeline.analyze                  INFO   [8378d8994728] extracting squat features …
+00:52:44  app.pipeline.analyze                  INFO   [8378d8994728] feature matrix shape: (16, 3)
+00:52:44  app.pipeline.expert_model             INFO   Loading expert model from /Users/avnee/henshack2026/squat_expert.pt
+00:52:44  app.pipeline.analyze                  INFO   [8378d8994728] running expert autoencoder inference …
+00:52:44  app.pipeline.analyze                  INFO   [8378d8994728] phase-anchored: T_raw=16, hole=7 → (100, 3)
+00:52:44  app.pipeline.expert_model             INFO   compute_mse: mean=0.08930, max=0.26305 over 100 frames
+00:52:44  app.pipeline.analyze                  INFO   [8378d8994728] mse_mean=0.08930
+00:52:44  app.pipeline.analyze                  INFO   [8378d8994728] detected 3 issues
+00:52:44  app.pipeline.overlay                  INFO   annotate_frames: annotated 16 frames
+00:52:44  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:52:44  app.pipeline.analyze                  INFO   [8378d8994728] annotated video → 8378d8994728_annotated.mp4
+00:52:45  app.pipeline.render                   INFO   render_comparison_video: 16 combined frames -> /Users/avnee/henshack2026/backend/app/artifacts/outputs/8378d8994728_comparison.mp4
+00:52:45  app.pipeline.video_io                 WARNING  ffmpeg transcode failed ([Errno 2] No such file or directory: 'ffmpeg'). Falling back to OpenCV mp4.
+00:52:45  app.pipeline.analyze                  INFO   [8378d8994728] comparison video → 8378d8994728_comparison.mp4
+00:52:45  app.pipeline.analyze                  INFO   [8378d8994728] === DONE ===
+INFO:     127.0.0.1:64951 - "POST /analyze/video HTTP/1.1" 200 OK
