@@ -87,8 +87,8 @@ class PoseAutoencoder(nn.Module):
 # ==========================================
 LIFT_CONFIGS = {
     'squat': {
-        'data_dir': 'training_tensors/squats/',
-        'num_features': 3, 
+        'data_dir': 'training_tensors/squats_phase100/',
+        'num_features': 3,
         'save_name': 'squat_expert.pt'
     },
     'bench': {
