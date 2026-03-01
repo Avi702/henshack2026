@@ -1,6 +1,6 @@
-squat_forms/
-Valid/
-
+squat_forms/*
+Valid/*
+archive (1)/*
 # Python
 __pycache__/
 *.pyc

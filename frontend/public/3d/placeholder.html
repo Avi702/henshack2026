@@ -157,8 +157,13 @@
       [[-0.22,-0.52],[0.22,-0.52],[-0.22,0.54],[0.22,0.54]].forEach(([x,z]) => {
         const l = mkCyl(0.029, 0.029, 0.46, 8, M.bench); l.position.set(x, 0.23, z); bg.add(l);
       });
-      bg.add(Object.assign(mkBox(0.48, 0.04, 1.20, M.bench), { position: new THREE.Vector3(0, 0.46, 0) }));
-      bg.add(Object.assign(mkBox(0.38, 0.075, 1.12, M.pad),  { position: new THREE.Vector3(0, 0.49, 0) }));
+      const benchBox = mkBox(0.48, 0.04, 1.20, M.bench);
+      benchBox.position.copy(new THREE.Vector3(0, 0.46, 0));
+      bg.add(benchBox);
+      
+      const benchPad = mkBox(0.38, 0.075, 1.12, M.pad);
+      benchPad.position.copy(new THREE.Vector3(0, 0.49, 0));
+      bg.add(benchPad);
     }
 
     // ── 2-Bone IK ─────────────────────────────────────────────────
@@ -271,51 +276,102 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  BENCH PRESS
+    //  BENCH PRESS — Supine flat bench press
+    //
+    //  Key cues:
+    //    • Lying on back, chest facing up (world +Y)
+    //    • Slight lower-back arch; shoulder blades retracted + depressed
+    //    • Feet flat on floor, slight leg drive
+    //    • Bar from lower chest (~nipple line) to full lockout
+    //    • Elbows at ~75° from torso at bottom (not 90°)
+    //    • Bar travels in slight arc (down → slightly toward face)
     // ═══════════════════════════════════════════════════════════════
     function poseBench(t) {
+      // ── 1. Body: lying supine on bench ──
+      // hips.rotation.x = -PI/2 makes local +Z (chest) face world +Y (up)
       hips.position.set(0, 0.49, -0.14);
-      hips.rotation.x = -Math.PI / 2 + 0.05;
+      hips.rotation.x = -Math.PI / 2 + 0.05;   // 0.05 = slight arch
       torso.rotation.set(0, 0, 0);
+
+      // ── 2. Legs: bent at hip and knee, feet on floor ──
+      // With hips rotated -PI/2, neutral thigh direction is world +Z (toward cam)
+      // Rotate thigh forward (around X) to bring foot down to floor
       [LL, RL].forEach(l => {
-        l.thigh.rotation.set(-1.55, 0, 0);
-        l.shin.rotation.set(  1.50, 0, 0);
-        l.ankle.rotation.set( 0.05, 0, 0);
+        l.thigh.rotation.set( 1.55, 0, 0);   // swing foot toward floor
+        l.shin.rotation.set( -1.50, 0, 0);   // bend knee
+        l.ankle.rotation.set(-0.05, 0, 0);
       });
+
       scene.updateMatrixWorld(true);
+
+      // ── 3. Bar travels up from chest level to lockout ──
+      // With hips at y=0.49, rotation -PI/2, shoulders are in world at y≈0.49, z≈-0.68
+      // Bar is above the chest (world +Y direction)
       const barY = lerp(0.58, 1.12, t);
+      // Slight arc: bar moves slightly toward head (−Z) as it rises
       const barZ = lerp(-0.66, -0.70, t);
+
       const BGRIP = 0.47;
       const lGrip = new THREE.Vector3(-BGRIP, barY, barZ);
       const rGrip = new THREE.Vector3( BGRIP, barY, barZ);
+
+      // Elbows: at bottom flare ~75° (outward), at top straight (above shoulder)
       const elbY = lerp(-0.25, 0.30, t);
-      solveIK(LA.pivot, LA.upper, LA.fore, lGrip, new THREE.Vector3(-1, elbY, 0.1).normalize(), AL1, AL2);
-      solveIK(RA.pivot, RA.upper, RA.fore, rGrip, new THREE.Vector3( 1, elbY, 0.1).normalize(), AL1, AL2);
+      const lEPole = new THREE.Vector3(-1, elbY, 0.1).normalize();
+      const rEPole = new THREE.Vector3( 1, elbY, 0.1).normalize();
+
+      solveIK(LA.pivot, LA.upper, LA.fore, lGrip, lEPole, AL1, AL2);
+      solveIK(RA.pivot, RA.upper, RA.fore, rGrip, rEPole, AL1, AL2);
+
       snapBarToWrists();
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  DEADLIFT
+    //  DEADLIFT — Conventional deadlift
+    //
+    //  Key cues:
+    //    • Hip-width stance, bar over mid-foot
+    //    • Hip HINGE: torso leans forward heavily at start
+    //    • Arms hang STRAIGHT (vertical), just outside legs
+    //    • Bar skims shins; stays close to body throughout pull
+    //    • At lockout: hips through, knees straight, shoulders over/behind bar
+    //    • Slight knee bend at start reduces to straight at lockout
     // ═══════════════════════════════════════════════════════════════
-    const DL_HIP_Y = 0.82, DL_THIGH_A = 0.18, DL_SHIN_A = 0.12, DL_ANKLE_A = -0.04;
     function poseDeadlift(t) {
-      hips.position.set(0, DL_HIP_Y, 0);
+      // ── 1. Hip hinge: torso goes from deep forward lean to upright ──
+      const hipY = lerp(0.70, 0.92, t);
+      hips.position.set(0, hipY, 0);
       hips.rotation.set(0, 0, 0);
-      const lean = lerp(0.32, 0.0, t);
+
+      const lean = lerp(0.82, 0.0, t);    // 0.82 rad ≈ 47° forward
       torso.rotation.set(lean, 0, 0);
+
+      // ── 2. Legs: start bent, end straight ──
+      const thA = lerp(0.42, 0.0, t);
+      const knA = lerp(0.32, 0.0, t);
       [LL, RL].forEach(l => {
-        l.thigh.rotation.set(DL_THIGH_A, 0, 0);
-        l.shin.rotation.set(-DL_THIGH_A + DL_SHIN_A, 0, 0);
-        l.ankle.rotation.set(DL_ANKLE_A, 0, 0);
+        l.thigh.rotation.set( thA, 0, 0);
+        l.shin.rotation.set( -thA + knA, 0, 0);
+        l.ankle.rotation.set(-knA * 0.35, 0, 0);
       });
+
       scene.updateMatrixWorld(true);
-      const shY = DL_HIP_Y + 0.54 * Math.cos(lean);
-      const shZ = -0.54 * Math.sin(lean);
-      const barY = shY - 0.52;
-      const lGrip = new THREE.Vector3(-0.335, barY, shZ + 0.04);
-      const rGrip = new THREE.Vector3( 0.335, barY, shZ + 0.04);
-      solveIK(LA.pivot, LA.upper, LA.fore, lGrip, new THREE.Vector3(-0.04, 0, -1).normalize(), AL1, AL2);
-      solveIK(RA.pivot, RA.upper, RA.fore, rGrip, new THREE.Vector3( 0.04, 0, -1).normalize(), AL1, AL2);
+
+      // ── 3. Bar rises from near-floor to hip height ──
+      // Arms hang nearly vertical → grip is directly below shoulders
+      const barY = lerp(0.225, hipY - 0.025, t);
+
+      // Grip just outside hips, shoulder-width, bar close to shins
+      const lGrip = new THREE.Vector3(-0.335, barY, 0.03);
+      const rGrip = new THREE.Vector3( 0.335, barY, 0.03);
+
+      // Elbows point straight back — arms hang like cables
+      const lEPole = new THREE.Vector3(-0.04, 0, -1).normalize();
+      const rEPole = new THREE.Vector3( 0.04, 0, -1).normalize();
+
+      solveIK(LA.pivot, LA.upper, LA.fore, lGrip, lEPole, AL1, AL2);
+      solveIK(RA.pivot, RA.upper, RA.fore, rGrip, rEPole, AL1, AL2);
+
       snapBarToWrists();
     }
 
